@@ -83,8 +83,9 @@ export function useDashboardStore() {
 
   const addCard = useCallback((config: CardConfig) => {
     setCards((prev) => {
-      const maxY = prev.reduce((max, c) => Math.max(max, c.grid.y + c.grid.h), 0);
-      return [...prev, { config, grid: { x: 0, y: maxY, w: 6, h: 4 } }];
+      // 新卡片放在最前面（y=0），已有卡片整体下移
+      const shifted = prev.map(c => ({ ...c, grid: { ...c.grid, y: c.grid.y + 4 } }));
+      return [{ config, grid: { x: 0, y: 0, w: 6, h: 4 } }, ...shifted];
     });
   }, []);
 
