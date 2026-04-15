@@ -1,7 +1,7 @@
 import KPICard from '@/components/KPICard';
 import { Card, CardContent } from '@/components/ui/card';
-import { DashboardGrid, DashboardToolbar } from '@/components/dashboard';
-import { getKPI, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
+import { DashboardGrid, DashboardToolbar, ChartBuilder } from '@/components/dashboard';
+import { getKPI, getLines, getEquipment, getOrders, getQualityRecords, getDatasources } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
 import { useDashboard } from '@/hooks/useDashboard';
 
@@ -19,6 +19,7 @@ export default function Overview() {
   const { data: qualityRecords } = useRequest(getQualityRecords);
 
   const dashboard = useDashboard();
+  const { data: dataSources } = useRequest(getDatasources);
 
   const runningLines = lines?.filter((l) => l.status === '运行中').length ?? 0;
   const totalLines = lines?.length ?? 0;
@@ -117,6 +118,26 @@ export default function Overview() {
         onEditCard={(id) => dashboard.openBuilder('edit', id)}
         onDeleteCard={dashboard.deleteCard}
         onChartTypeChange={dashboard.updateCardChartType}
+      />
+
+      {/* 图表搭建器弹窗 */}
+      <ChartBuilder
+        open={dashboard.builder.open}
+        mode={dashboard.builder.mode}
+        editingConfig={
+          dashboard.builder.editingCardId
+            ? dashboard.cards.find((c) => c.config.id === dashboard.builder.editingCardId)?.config
+            : undefined
+        }
+        dataSources={dataSources ?? []}
+        onConfirm={(config) => {
+          if (dashboard.builder.mode === 'create') {
+            dashboard.addCard(config);
+          } else {
+            dashboard.updateCard(config);
+          }
+        }}
+        onClose={dashboard.closeBuilder}
       />
     </div>
   );
