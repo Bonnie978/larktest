@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Separator } from '@/components/ui/separator';
 
 const navItems = [
   { path: '/overview', label: '生产概览', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
@@ -9,9 +10,15 @@ const navItems = [
   { path: '/orders', label: '工单管理', icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
 ];
 
-function NavIcon({ d, className }: { d: string; className?: string }) {
+function NavIcon({ d }: { d: string }) {
   return (
-    <svg className={`w-[18px] h-[18px] shrink-0 ${className || ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <svg
+      className="w-[18px] h-[18px] shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.8}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d={d} />
     </svg>
   );
@@ -22,30 +29,34 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="h-screen bg-[#1D2129] text-white/90 flex flex-col transition-all duration-300 shrink-0"
+      className="h-screen bg-sidebar flex flex-col shrink-0 transition-all duration-300"
       style={{ width: collapsed ? 56 : 220 }}
     >
       {/* Logo */}
-      <div className="h-14 flex items-center px-4 border-b border-white/[0.06]">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm shrink-0">
+      <div className="h-14 flex items-center px-3 gap-3">
+        <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center text-white font-bold text-sm shrink-0">
           智
         </div>
         {!collapsed && (
-          <span className="ml-3 font-semibold text-[15px] text-white whitespace-nowrap">智造云</span>
+          <span className="font-semibold text-[15px] text-sidebar-foreground whitespace-nowrap">
+            智造云
+          </span>
         )}
       </div>
 
-      {/* Nav */}
+      <Separator className="bg-sidebar-border" />
+
+      {/* Navigation */}
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-hidden">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center h-9 px-3 rounded-md transition-all duration-150 group ${
+              `flex items-center h-9 px-3 rounded-md transition-colors duration-150 ${
                 isActive
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'text-white/60 hover:bg-white/[0.08] hover:text-white/90'
+                  ? 'bg-sidebar-primary text-white'
+                  : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
               }`
             }
           >
@@ -57,12 +68,20 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      <Separator className="bg-sidebar-border" />
+
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="h-11 flex items-center justify-center border-t border-white/[0.06] text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-colors cursor-pointer"
+        className="h-11 flex items-center justify-center text-sidebar-foreground/40 hover:text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors cursor-pointer"
       >
-        <svg className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg
+          className={`w-4 h-4 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
       </button>

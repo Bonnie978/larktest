@@ -1,4 +1,5 @@
 import React from "react";
+import { Badge } from "@/components/ui/badge";
 
 interface TagProps {
   type: "success" | "warning" | "danger" | "default";
@@ -6,19 +7,17 @@ interface TagProps {
 }
 
 const styleMap: Record<TagProps["type"], string> = {
-  success: "bg-success-bg text-success",
-  warning: "bg-warning-bg text-warning",
-  danger: "bg-danger-bg text-danger",
-  default: "bg-bg-header text-text-secondary",
+  success: "bg-[#E8FFEA] text-[#00B42A] hover:bg-[#E8FFEA] border-transparent",
+  warning: "bg-[#FFF7E8] text-[#FF7D00] hover:bg-[#FFF7E8] border-transparent",
+  danger: "bg-[#FFECE8] text-[#F53F3F] hover:bg-[#FFECE8] border-transparent",
+  default: "bg-muted text-muted-foreground hover:bg-muted border-transparent",
 };
 
 const Tag: React.FC<TagProps> = ({ type, children }) => {
   return (
-    <span
-      className={`px-2 py-0.5 rounded text-xs font-medium inline-block ${styleMap[type]}`}
-    >
+    <Badge variant="outline" className={styleMap[type]}>
       {children}
-    </span>
+    </Badge>
   );
 };
 
