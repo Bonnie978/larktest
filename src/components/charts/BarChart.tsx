@@ -15,7 +15,7 @@ export interface ChartProps {
   groupByField: string;
   valueFields: string[];
   fieldLabels: Record<string, string>;
-  height?: number;
+  height?: number | string;
 }
 
 export default function BarChartComponent({
@@ -23,7 +23,7 @@ export default function BarChartComponent({
   groupByField,
   valueFields,
   fieldLabels,
-  height = 280,
+  height = '100%',
 }: ChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>

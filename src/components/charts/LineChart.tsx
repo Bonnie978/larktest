@@ -16,7 +16,7 @@ export default function LineChartComponent({
   groupByField,
   valueFields,
   fieldLabels,
-  height = 280,
+  height = '100%',
 }: ChartProps) {
   return (
     <ResponsiveContainer width="100%" height={height}>

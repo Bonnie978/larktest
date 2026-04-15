@@ -40,16 +40,23 @@ export default function DashboardGrid({
     [cards]
   );
 
+  const gridConfig = useMemo(
+    () => ({
+      cols: GRID_CONFIG.cols,
+      rowHeight: GRID_CONFIG.rowHeight,
+      margin: GRID_CONFIG.margin,
+      containerPadding: GRID_CONFIG.containerPadding,
+    }),
+    []
+  );
+
   return (
     <div ref={containerRef} className={isEditing ? 'dashboard-editing' : ''}>
       {width > 0 && (
         <GridLayout
           layout={layout}
           width={width}
-          cols={GRID_CONFIG.cols}
-          rowHeight={GRID_CONFIG.rowHeight}
-          margin={GRID_CONFIG.margin}
-          containerPadding={GRID_CONFIG.containerPadding}
+          gridConfig={gridConfig}
           isDraggable={isEditing}
           isResizable={isEditing}
           onLayoutChange={onLayoutChange}

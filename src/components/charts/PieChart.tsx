@@ -14,7 +14,7 @@ export default function PieChartComponent({
   groupByField,
   valueFields,
   fieldLabels,
-  height = 280,
+  height = '100%',
 }: ChartProps) {
   const dataKey = valueFields[0];
   const total = data.reduce((sum, d) => sum + (Number(d[dataKey]) || 0), 0);
