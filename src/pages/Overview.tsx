@@ -1,10 +1,9 @@
 import KPICard from '@/components/KPICard';
-import Table, { type Column } from '@/components/Table';
-import Tag from '@/components/Tag';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getKPI, getLineProduction, getWeeklyDefects, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { DashboardGrid, DashboardToolbar } from '@/components/dashboard';
+import { getKPI, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
-import type { LineProductionRow, WeeklyDefectRow } from '@/mock/types';
+import { useDashboard } from '@/hooks/useDashboard';
 
 export default function Overview() {
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -14,68 +13,47 @@ export default function Overview() {
   });
 
   const { data: kpiData } = useRequest(getKPI);
-  const { data: lineProductionData } = useRequest(getLineProduction);
-  const { data: weeklyDefectData } = useRequest(getWeeklyDefects);
   const { data: lines } = useRequest(getLines);
   const { data: equipment } = useRequest(getEquipment);
   const { data: orders } = useRequest(getOrders);
   const { data: qualityRecords } = useRequest(getQualityRecords);
 
-  const runningLines = lines?.filter(l => l.status === '运行中').length ?? 0;
+  const dashboard = useDashboard();
+
+  const runningLines = lines?.filter((l) => l.status === '运行中').length ?? 0;
   const totalLines = lines?.length ?? 0;
-  const runningEquipment = equipment?.filter(e => e.status === '运行中').length ?? 0;
+  const runningEquipment = equipment?.filter((e) => e.status === '运行中').length ?? 0;
   const totalEquipment = equipment?.length ?? 0;
-  const pendingOrders = orders?.filter(o => o.deliveryStatus === '进行中').length ?? 0;
-  const riskOrders = orders?.filter(o => o.deliveryStatus === '风险').length ?? 0;
-  const pendingQuality = qualityRecords?.filter(q => q.status === '待处理').length ?? 0;
-
-  const productionColumns: Column<LineProductionRow>[] = [
-    { key: 'lineName', title: '产线编号' },
-    { key: 'shift', title: '班次' },
-    { key: 'planned', title: '计划产量', align: 'right', render: (v: number) => v.toLocaleString() },
-    { key: 'actual', title: '实际产量', align: 'right', render: (v: number) => v.toLocaleString() },
-    {
-      key: 'completionRate', title: '完成率', align: 'right',
-      render: (v: number) => (
-        <span className={v < 85 ? 'text-[#F53F3F] font-medium' : ''}>{v}%</span>
-      ),
-    },
-    {
-      key: 'status', title: '状态', align: 'center',
-      render: (_: any, record: LineProductionRow) => (
-        <Tag type={record.completionRate < 85 ? 'warning' : 'success'}>
-          {record.completionRate < 85 ? '未达标' : '达标'}
-        </Tag>
-      ),
-    },
-  ];
-
-  const defectColumns: Column<WeeklyDefectRow>[] = [
-    { key: 'date', title: '日期' },
-    { key: 'inspectedQty', title: '检验数量', align: 'right', render: (v: number) => v.toLocaleString() },
-    { key: 'defectQty', title: '不良数', align: 'right', render: (v: number) => v.toLocaleString() },
-    {
-      key: 'defectRate', title: '不良率', align: 'right',
-      render: (v: number) => (
-        <span className={v > 2.5 ? 'text-[#F53F3F] font-medium' : ''}>{v}%</span>
-      ),
-    },
-    { key: 'mainDefectType', title: '主要不良类型' },
-  ];
+  const pendingOrders = orders?.filter((o) => o.deliveryStatus === '进行中').length ?? 0;
+  const riskOrders = orders?.filter((o) => o.deliveryStatus === '风险').length ?? 0;
+  const pendingQuality = qualityRecords?.filter((q) => q.status === '待处理').length ?? 0;
 
   return (
     <div className="p-6 space-y-5">
+      {/* 标题栏 */}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">生产概览</h1>
-        <span className="text-sm text-muted-foreground">{today}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">{today}</span>
+          <DashboardToolbar
+            isEditing={dashboard.isEditing}
+            onEnterEdit={dashboard.enterEditMode}
+            onNewChart={() => dashboard.openBuilder('create')}
+            onReset={dashboard.resetToDefault}
+            onCancel={dashboard.cancelEdit}
+            onSave={dashboard.saveLayout}
+          />
+        </div>
       </div>
 
+      {/* KPI 卡片 */}
       <div className="grid grid-cols-5 gap-4">
         {(kpiData ?? []).map((kpi, index) => (
           <KPICard key={index} label={kpi.label} value={kpi.value} unit={kpi.unit} />
         ))}
       </div>
 
+      {/* 状态汇总 */}
       <div className="grid grid-cols-4 gap-4">
         <Card className="shadow-sm">
           <CardContent className="flex items-center justify-between pt-0 pb-0 h-16">
@@ -131,23 +109,15 @@ export default function Overview() {
         </Card>
       </div>
 
-      <Card className="shadow-sm">
-        <CardHeader className="pb-0 pt-4 px-5">
-          <CardTitle className="text-[15px] font-medium">产线产量完成情况</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0 pb-0 pt-3">
-          <Table<LineProductionRow> columns={productionColumns} data={lineProductionData ?? []} rowKey="lineId" />
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-sm">
-        <CardHeader className="pb-0 pt-4 px-5">
-          <CardTitle className="text-[15px] font-medium">近 7 天不良数据汇总</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0 pb-0 pt-3">
-          <Table<WeeklyDefectRow> columns={defectColumns} data={weeklyDefectData ?? []} rowKey="date" />
-        </CardContent>
-      </Card>
+      {/* 可拖拽仪表盘 */}
+      <DashboardGrid
+        cards={dashboard.cards}
+        isEditing={dashboard.isEditing}
+        onLayoutChange={dashboard.onLayoutChange}
+        onEditCard={(id) => dashboard.openBuilder('edit', id)}
+        onDeleteCard={dashboard.deleteCard}
+        onChartTypeChange={dashboard.updateCardChartType}
+      />
     </div>
   );
 }
