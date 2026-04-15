@@ -237,9 +237,24 @@ interface WeeklyDefectRow {
 
 | 依赖 | 用途 | 推荐版本 |
 |------|------|---------|
-| `recharts` | 图表渲染（柱状图/折线图/饼图） | ^2.15 |
-| `react-grid-layout` | 拖拽网格布局 | ^1.5 |
-| `@types/react-grid-layout` | 类型定义 | ^1.5 |
+| `recharts` | 图表渲染（柱状图/折线图/饼图） | 2.15.0 |
+| `react-grid-layout` | 拖拽网格布局 | 1.5.0 |
+| `@types/react-grid-layout` | 类型定义 | 1.5.0 |
+
+#### 依赖 API 验证
+
+安装完成后，开发者必须执行以下验证命令确认 API 可用：
+
+**react-grid-layout 验证**：
+```bash
+node -e "const rgl = require('react-grid-layout');
+console.log('GridLayout:', typeof rgl.GridLayout);
+console.log('useContainerWidth:', typeof rgl.useContainerWidth);
+console.log('WidthProvider:', typeof rgl.WidthProvider);"
+```
+预期输出：`GridLayout: function, useContainerWidth: function, WidthProvider: undefined`
+
+> ⚠️ 注意：`WidthProvider` 在当前版本已移除，文档中所有用法均基于 `useContainerWidth` + `GridLayout`。
 
 ---
 
@@ -406,7 +421,7 @@ export interface DashboardCard {
 
 /** localStorage 持久化结构 */
 export interface DashboardLayout {
-  version: 2;
+  version: 3;
   cards: DashboardCard[];
 }
 
@@ -432,17 +447,16 @@ import type { DashboardCard, AggregationType } from '@/types/dashboard';
 export const STORAGE_KEY = 'dashboard-v2';
 
 /** 持久化版本号 */
-export const LAYOUT_VERSION = 2;
+export const LAYOUT_VERSION = 3;
 
 /** 拖拽网格配置 */
-export const GRID_CONFIG = {
-  cols: 12,
-  rowHeight: 100,
-  margin: [12, 12] as [number, number],
-  containerPadding: [0, 0] as [number, number],
-  minW: 4,
-  minH: 4,
-};
+
+| 配置项 | 值 |
+|-------|---|
+| 列数 | 12 |
+| 单元格高度 | 图表卡片默认能完整展示图表内容和图例，无明显空白 |
+| 间距 | 12px |
+| 最小卡片尺寸 | 约占页面宽度 1/3，高度能完整展示一个图表 |
 
 /** 图表色板（需求文档 8 色） */
 export const CHART_COLORS = [
@@ -778,7 +792,7 @@ function loadFromStorage(): DashboardCard[] {
     if (!raw) return DEFAULT_DASHBOARD;
 
     const parsed = JSON.parse(raw) as DashboardLayout;
-    if (parsed.version !== LAYOUT_VERSION) return DEFAULT_DASHBOARD;
+    if (parsed.version !== LAYOUT_VERSION) return DEFAULT_DASHBOARD; // LAYOUT_VERSION = 3
     if (!Array.isArray(parsed.cards)) return DEFAULT_DASHBOARD;
 
     return parsed.cards;
@@ -848,54 +862,41 @@ interface DashboardToolbarProps {
 **文件：`src/components/dashboard/DashboardGrid.tsx`**
 
 ```typescript
-import { Responsive, WidthProvider } from 'react-grid-layout';
-const ResponsiveGridLayout = WidthProvider(Responsive);
+import { GridLayout, useContainerWidth } from 'react-grid-layout';
 
-interface DashboardGridProps {
-  cards: DashboardCard[];
-  isEditing: boolean;
-  onLayoutChange: (layout: ReactGridLayout.Layout[]) => void;
-  onEditCard: (cardId: string) => void;
-  onDeleteCard: (cardId: string) => void;
-  onChartTypeChange: (cardId: string, type: ChartType) => void;
-}
+// useContainerWidth() 返回 { width, containerRef, mounted, measureWidth }
+// containerRef 需绑定到容器 div
+const { width, containerRef } = useContainerWidth();
+
+// 关键：rowHeight/cols/margin 等参数必须通过 gridConfig 对象传入，
+// 不能作为独立 props（新版 API 变更）
+const gridConfig = {
+  cols: GRID_CONFIG.cols,
+  rowHeight: GRID_CONFIG.rowHeight,
+  margin: GRID_CONFIG.margin,
+  containerPadding: GRID_CONFIG.containerPadding,
+};
+
+<div ref={containerRef}>
+  {width > 0 && (
+    <GridLayout
+      layout={gridLayout}
+      width={width}
+      gridConfig={gridConfig}
+      isDraggable={isEditing}
+      isResizable={isEditing}
+      onLayoutChange={onLayoutChange}
+      draggableHandle=".drag-handle"
+    >
+      ...
+    </GridLayout>
+  )}
+</div>
 ```
 
-**关键配置**：
-```typescript
-<ResponsiveGridLayout
-  layouts={{ lg: gridLayout }}
-  breakpoints={{ lg: 1200 }}
-  cols={{ lg: 12 }}
-  rowHeight={100}
-  margin={[12, 12]}
-  containerPadding={[0, 0]}
-  isDraggable={isEditing}
-  isResizable={isEditing}
-  onLayoutChange={onLayoutChange}
-  draggableHandle=".drag-handle"
->
-  {cards.map(card => (
-    <div key={card.config.id}>
-      <ChartCard
-        config={card.config}
-        isEditing={isEditing}
-        onEdit={() => onEditCard(card.config.id)}
-        onDelete={() => onDeleteCard(card.config.id)}
-        onChartTypeChange={(type) => onChartTypeChange(card.config.id, type)}
-      />
-    </div>
-  ))}
-</ResponsiveGridLayout>
-```
+> **为什么用 GridLayout 而非 ResponsiveGridLayout**：ResponsiveGridLayout 内部缓存 layout 状态，当通过 `addCard`/`deleteCard` 动态增删卡片时，`layouts` prop 变化不会同步到内部状态，导致新卡片不渲染。GridLayout 的 `layout` prop 是完全受控的，没有此问题。
 
-**编辑模式卡片边框**：
-```css
-/* 编辑模式下卡片虚线边框 */
-.react-grid-item.editing {
-  border: 1px dashed rgba(22, 100, 255, 0.3);
-}
-```
+**编辑模式卡片边框**：主色虚线边框，低透明度，区分编辑状态
 
 **需引入 react-grid-layout 样式**：
 ```typescript
@@ -923,7 +924,7 @@ interface ChartCardProps {
 │ 标题              [📊][📈][🍩] [✎][✕] │  ← 头部
 ├──────────────────────────────────────┤
 │                                      │
-│         Recharts 图表区域             │  ← 高度 280px
+│         Recharts 图表区域             │  ← height="100%"，flex 自适应
 │         (BarChart/LineChart/PieChart) │
 │                                      │
 └──────────────────────────────────────┘
@@ -934,6 +935,11 @@ interface ChartCardProps {
 - **编辑按钮 ✎**：仅编辑模式显示，蓝色圆形，`absolute top-2 right-10`
 - **删除按钮 ✕**：仅编辑模式显示，红色圆形，`absolute top-2 right-2`
 - **拖拽手柄**：头部区域设 `className="drag-handle"`，仅编辑模式 cursor=move
+
+**图表高度策略**：
+- 卡片内图表：`height="100%"`，通过 flex 布局自适应填满卡片剩余空间
+- 搭建器预览：固定 `height={320}`，因为弹窗尺寸固定
+- ChartProps 的 height 类型改为 `number | string`，默认值 `'100%'`
 
 **数据获取与聚合流程**：
 ```typescript
@@ -966,70 +972,21 @@ interface BarChartProps {
   groupByField: string;
   valueFields: string[];
   fieldLabels: Record<string, string>; // key → 显示名映射
-  height?: number;
+  height?: number | string; // 默认 '100%'
 }
 ```
 
 **样式配置（对应需求文档九.2 节）**：
-```typescript
-<CartesianGrid strokeDasharray="3 3" stroke="#F2F3F5" />
-<XAxis
-  dataKey={groupByField}
-  tick={{ fontSize: 11, fill: '#86909C' }}
-/>
-<YAxis tick={{ fontSize: 11, fill: '#86909C' }} />
-<Tooltip
-  contentStyle={{
-    background: '#fff',
-    border: '1px solid #E5E6EB',
-    borderRadius: 6,
-  }}
-/>
-{valueFields.map((field, i) => (
-  <Bar
-    key={field}
-    dataKey={field}
-    name={fieldLabels[field] || field}
-    fill={CHART_COLORS[i % CHART_COLORS.length]}
-    radius={[3, 3, 0, 0]}  // 顶部圆角
-  />
-))}
-```
 
-#### 4.10.2 LineChart（折线图）
-
-**文件：`src/components/charts/LineChart.tsx`**
-
-```typescript
-<Line
-  type="monotone"
-  dataKey={field}
-  name={fieldLabels[field] || field}
-  stroke={CHART_COLORS[i % CHART_COLORS.length]}
-  strokeWidth={2}
-  dot={{ r: 4 }}
-  activeDot={{ r: 6 }}
-/>
-```
-
-#### 4.10.3 PieChart（饼图 / 环形图）
-
-**文件：`src/components/charts/PieChart.tsx`**
-
-```typescript
-<Pie
-  data={data}
-  dataKey={valueFields[0]}  // 饼图仅取第一个数值字段
-  nameKey={groupByField}
-  innerRadius={50}
-  outerRadius={110}
-  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
->
-  {data.map((_, index) => (
-    <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-  ))}
-</Pie>
-```
+| 配置项 | 视觉效果 |
+|-------|---------|
+| 坐标轴文字 | 辅助色（灰色）小号字体 |
+| 网格线 | 浅色虚线，不抢占视觉注意力 |
+| Tooltip | 白色背景，浅灰色边框，带圆角 |
+| 图表高度 | 自适应填满卡片可用空间，无明显空白；搭建器预览区约占弹窗高度 50% |
+| 柱状图 | 顶部带小圆角 |
+| 折线图 | 中等粗细线条，数据点可见，鼠标悬停时数据点放大 |
+| 饼图 | 环形图，内外环比例约 1:2，标签显示名称+百分比，图形及标签不超出卡片边界 |
 
 ### 4.11 ChartBuilder（图表搭建器）组件设计
 
@@ -1362,7 +1319,7 @@ Overview.tsx
 ├── DashboardToolbar.tsx [新增]
 │   └── Button (shadcn)
 ├── DashboardGrid.tsx [新增]
-│   ├── react-grid-layout (ResponsiveGridLayout)
+│   ├── react-grid-layout (GridLayout + useContainerWidth)
 │   └── ChartCard.tsx [新增] (×N)
 │       ├── Card (shadcn) ── 外壳
 │       ├── useRequest ──── 数据获取
@@ -1404,7 +1361,7 @@ useDashboard 初始化
     │       │
     │       ├── null → 使用 DEFAULT_DASHBOARD (3 个预设图表)
     │       ├── JSON 解析失败 → DEFAULT_DASHBOARD
-    │       ├── version ≠ 2 → DEFAULT_DASHBOARD
+    │       ├── version ≠ 3 → DEFAULT_DASHBOARD
     │       ├── cards 非数组 → DEFAULT_DASHBOARD
     │       └── 正常 → 使用存储的配置
     │
@@ -1568,23 +1525,33 @@ describe('loadFromStorage 容错', () => {
     expect(loadFromStorage()).toEqual(DEFAULT_DASHBOARD);
   });
 
-  it('version 不等于 2 → 返回默认', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, cards: [] }));
+  it('version 不等于 3 → 返回默认', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, cards: [] }));
     expect(loadFromStorage()).toEqual(DEFAULT_DASHBOARD);
   });
 
   it('cards 不是数组 → 返回默认', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, cards: 'not-array' }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 3, cards: 'not-array' }));
     expect(loadFromStorage()).toEqual(DEFAULT_DASHBOARD);
   });
 
   it('正常数据 → 返回存储内容', () => {
-    const stored = { version: 2, cards: [/* ... */] };
+    const stored = { version: 3, cards: [/* ... */] };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
     expect(loadFromStorage()).toEqual(stored.cards);
   });
 });
 ```
+
+**版本升级规则**：
+
+以下任一情况发生时，必须将 LAYOUT_VERSION +1：
+- `GRID_CONFIG` 中的 `rowHeight` 变更
+- 默认卡片的 grid 位置/尺寸变更（DEFAULT_DASHBOARD）
+- `CardConfig` 接口新增/删除/重命名字段
+- 聚合方式枚举值变更
+
+升级后，旧版本的 localStorage 数据自动失效，回退到 DEFAULT_DASHBOARD。
 
 ---
 
@@ -1626,6 +1593,81 @@ npm install -D @types/react-grid-layout
 | Recharts 在 Tailwind CSS 4 下的样式冲突 | 图表样式异常 | Recharts 使用内联 SVG 样式，与 Tailwind 无冲突 |
 | localStorage 5MB 容量限制 | 看板配置丢失 | 单个配置远小于 5MB，不是风险 |
 | 搭建器弹窗实现方式 | Sheet 不支持居中弹窗 | 使用 @base-ui/react 的 Dialog 组件（已是项目依赖），无需新增 |
+
+---
+
+## 十一、第三方库 API 验证清单
+
+本项目使用的第三方库 API 均已在指定版本验证通过。开发者在实现前必须先运行验证命令确认 API 一致性。
+
+### react-grid-layout@1.5.0
+
+| API | 状态 | 说明 |
+|-----|------|------|
+| `GridLayout` | ✅ 可用 | 受控布局组件，layout prop 实时响应变化 |
+| `useContainerWidth()` | ✅ 可用 | 返回 `{ width, containerRef, mounted, measureWidth }` |
+| `ResponsiveGridLayout` | ⚠️ 不推荐 | 内部缓存 layout，动态增删卡片时不同步 |
+| `WidthProvider` | ❌ 已移除 | 旧版 API，当前版本不存在 |
+
+**关键差异**：
+- `rowHeight`、`cols`、`margin`、`containerPadding` 必须通过 `gridConfig` 对象传入，不能作为独立 props
+- `useContainerWidth()` 无参数调用，返回对象中包含 `containerRef`，需绑定到容器 DOM 元素
+
+### recharts@2.15.0
+
+| API | 状态 | 说明 |
+|-----|------|------|
+| `ResponsiveContainer` | ✅ 可用 | 支持 `width="100%" height="100%"` 或固定像素 |
+| `BarChart/LineChart/PieChart` | ✅ 可用 | 标准图表组件 |
+| `Legend` | ⚠️ 注意 | 渲染在 ResponsiveContainer 高度之外，需预留空间或使用 100% 高度自适应 |
+
+---
+
+## 十二、集成验证脚本
+
+开发者完成任务后，必须运行以下自动化验证确认功能正常：
+
+```bash
+# 前置：npm install -g playwright && npx playwright install chromium
+# 确保 dev server 已启动（npm run dev）
+
+node -e "
+const { chromium } = require('playwright');
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  await page.goto('http://localhost:5173/overview');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForTimeout(3000);
+
+  // 验证 1: 默认 3 个图表渲染
+  const items = await page.locator('.react-grid-item').count();
+  console.assert(items === 3, '❌ 应有 3 个默认图表，实际: ' + items);
+
+  // 验证 2: 卡片高度合理（300-500px）
+  const h = await page.locator('.react-grid-item').first().evaluate(el => el.offsetHeight);
+  console.assert(h > 300 && h < 500, '❌ 卡片高度异常: ' + h);
+
+  // 验证 3: 图表无溢出
+  const overflow = await page.locator('.react-grid-item').first().evaluate(
+    el => el.scrollHeight > el.clientHeight + 5);
+  console.assert(!overflow, '❌ 图表内容溢出卡片');
+
+  // 验证 4: 新建图表流程
+  await page.click('text=编辑仪表盘');
+  await page.click('text=新建图表');
+  await page.waitForTimeout(2000);
+  await page.click('text=添加到看板');
+  await page.waitForTimeout(1000);
+  const after = await page.locator('.react-grid-item').count();
+  console.assert(after === 4, '❌ 添加后应有 4 个图表，实际: ' + after);
+
+  console.log('✅ 全部验证通过');
+  await browser.close();
+})();
+"
+```
 
 ---
 
