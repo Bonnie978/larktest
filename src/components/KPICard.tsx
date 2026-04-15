@@ -1,4 +1,5 @@
 import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface KPICardProps {
   label: string;
@@ -8,13 +9,21 @@ interface KPICardProps {
 
 const KPICard: React.FC<KPICardProps> = ({ label, value, unit }) => {
   return (
-    <div className="bg-white border border-border rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
-      <div className="text-text-tertiary text-xs mb-2 tracking-wide">{label}</div>
-      <div className="flex items-baseline gap-1">
-        <span className="text-[28px] font-semibold text-text-primary leading-none">{value}</span>
-        {unit && <span className="text-sm text-text-tertiary ml-0.5">{unit}</span>}
-      </div>
-    </div>
+    <Card className="shadow-sm hover:shadow-md transition-shadow">
+      <CardContent className="pt-1">
+        <div className="text-muted-foreground text-xs mb-2 tracking-wide">
+          {label}
+        </div>
+        <div className="flex items-baseline gap-1">
+          <span className="text-3xl font-semibold tracking-tight">{value}</span>
+          {unit && (
+            <span className="text-sm text-muted-foreground ml-0.5">
+              {unit}
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

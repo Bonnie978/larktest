@@ -1,6 +1,8 @@
 import Table, { type Column } from '@/components/Table';
 import Tag from '@/components/Tag';
-import { workOrders } from '@/mock/orders';
+import { Card, CardContent } from '@/components/ui/card';
+import { getOrders } from '@/api';
+import { useRequest } from '@/hooks/useRequest';
 import type { WorkOrder } from '@/mock/types';
 
 const deliveryStatusMap: Record<string, 'success' | 'warning' | 'danger' | 'default'> = {
@@ -11,58 +13,34 @@ const deliveryStatusMap: Record<string, 'success' | 'warning' | 'danger' | 'defa
 };
 
 export default function Orders() {
+  const { data: workOrders } = useRequest(getOrders);
+
   const columns: Column<WorkOrder>[] = [
-    { key: 'id', title: '工单号', width: '130px' },
-    { key: 'productModel', title: '产品型号', width: '110px' },
-    { key: 'customer', title: '客户名称', width: '110px' },
-    { key: 'plannedQty', title: '计划数量', width: '90px', align: 'right', render: (v: number) => v.toLocaleString() },
+    { key: 'id', title: '工单号' },
+    { key: 'productModel', title: '产品型号' },
+    { key: 'customer', title: '客户名称' },
+    { key: 'plannedQty', title: '计划数量', align: 'right', render: (v: number) => v.toLocaleString() },
     {
-      key: 'completedQty',
-      title: '已完成',
-      width: '120px',
-      align: 'right',
+      key: 'completedQty', title: '已完成', align: 'right',
       render: (value: number, record: WorkOrder) => {
-        const pct = record.plannedQty > 0
-          ? ((value / record.plannedQty) * 100).toFixed(1)
-          : '0.0';
-        return (
-          <span>
-            {value.toLocaleString()}
-            <span className="text-text-tertiary text-xs ml-1">({pct}%)</span>
-          </span>
-        );
+        const pct = record.plannedQty > 0 ? ((value / record.plannedQty) * 100).toFixed(1) : '0.0';
+        return <span>{value.toLocaleString()}<span className="text-muted-foreground text-xs ml-1">({pct}%)</span></span>;
       },
     },
-    { key: 'plannedStart', title: '计划开始', width: '110px' },
-    { key: 'plannedEnd', title: '计划完成', width: '110px' },
-    {
-      key: 'actualEnd',
-      title: '实际完成',
-      width: '110px',
-      render: (value: string | null) => value || <span className="text-text-tertiary">—</span>,
-    },
-    {
-      key: 'deliveryStatus',
-      title: '交期状态',
-      width: '90px',
-      align: 'center',
-      render: (value: string) => (
-        <Tag type={deliveryStatusMap[value] || 'default'}>{value}</Tag>
-      ),
-    },
+    { key: 'plannedStart', title: '计划开始' },
+    { key: 'plannedEnd', title: '计划完成' },
+    { key: 'actualEnd', title: '实际完成', render: (value: string | null) => value || <span className="text-muted-foreground">—</span> },
+    { key: 'deliveryStatus', title: '交期状态', align: 'center', render: (value: string) => <Tag type={deliveryStatusMap[value] || 'default'}>{value}</Tag> },
   ];
 
   return (
     <div className="p-6 space-y-5">
-      <h1 className="text-lg font-semibold text-text-primary">工单管理</h1>
-
-      <div className="bg-white rounded-lg border border-border shadow-sm">
-        <Table<WorkOrder>
-          columns={columns}
-          data={workOrders}
-          rowKey="id"
-        />
-      </div>
+      <h1 className="text-lg font-semibold">工单管理</h1>
+      <Card className="shadow-sm">
+        <CardContent className="p-0">
+          <Table<WorkOrder> columns={columns} data={workOrders ?? []} rowKey="id" />
+        </CardContent>
+      </Card>
     </div>
   );
 }

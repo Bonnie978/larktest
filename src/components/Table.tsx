@@ -1,10 +1,19 @@
 import React, { useState, useCallback } from "react";
+import {
+  Table as ShadcnTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export interface Column<T> {
   key: string;
   title: string;
   width?: string;
-  align?: 'left' | 'center' | 'right';
+  align?: "left" | "center" | "right";
   render?: (value: any, record: T, index: number) => React.ReactNode;
 }
 
@@ -17,6 +26,12 @@ interface TableProps<T> {
     expandedRowRender: (record: T) => React.ReactNode;
   };
 }
+
+const alignClass = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+};
 
 function Table<T extends Record<string, any>>({
   columns,
@@ -32,7 +47,7 @@ function Table<T extends Record<string, any>>({
       if (typeof rowKey === "function") return rowKey(record);
       return String(record[rowKey]);
     },
-    [rowKey],
+    [rowKey]
   );
 
   const handleRowClick = (record: T) => {
@@ -51,64 +66,66 @@ function Table<T extends Record<string, any>>({
   const clickable = !!(onRowClick || expandable);
 
   return (
-    <div className="w-full overflow-hidden">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="bg-[#F7F8FA] border-b border-border">
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={`px-4 text-${col.align || 'left'} text-text-tertiary text-xs font-medium uppercase tracking-wider`}
-                style={{ height: 44, width: col.width }}
+    <ShadcnTable>
+      <TableHeader>
+        <TableRow className="bg-muted/50 hover:bg-muted/50">
+          {columns.map((col) => (
+            <TableHead
+              key={col.key}
+              className={cn(
+                "text-xs font-medium text-muted-foreground h-10",
+                alignClass[col.align || "left"]
+              )}
+              style={{ width: col.width }}
+            >
+              {col.title}
+            </TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((record, index) => {
+          const key = getRowKey(record);
+          const expanded = expandable && expandedKeys.has(key);
+          return (
+            <React.Fragment key={key}>
+              <TableRow
+                className={clickable ? "hover:bg-accent cursor-pointer" : undefined}
+                onClick={() => handleRowClick(record)}
               >
-                {col.title}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((record, index) => {
-            const key = getRowKey(record);
-            const expanded = expandable && expandedKeys.has(key);
-            return (
-              <React.Fragment key={key}>
-                <tr
-                  className={`border-b border-border/60 transition-colors ${
-                    clickable ? "hover:bg-primary-bg/40 cursor-pointer" : "hover:bg-[#FAFAFA]"
-                  } ${index % 2 === 0 ? "" : "bg-[#FAFBFC]"}`}
-                  onClick={() => handleRowClick(record)}
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`px-4 py-3 text-sm text-text-primary text-${col.align || 'left'}`}
-                    >
-                      {col.render
-                        ? col.render(record[col.key], record, index)
-                        : record[col.key]}
-                    </td>
-                  ))}
-                </tr>
-                {expanded && (
-                  <tr className="bg-[#F7F8FA]">
-                    <td colSpan={columns.length} className="px-4 py-4">
-                      {expandable!.expandedRowRender(record)}
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
-            );
-          })}
-          {data.length === 0 && (
-            <tr>
-              <td colSpan={columns.length} className="text-center py-12 text-text-tertiary text-sm">
-                暂无数据
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+                {columns.map((col) => (
+                  <TableCell
+                    key={col.key}
+                    className={cn("py-3", alignClass[col.align || "left"])}
+                  >
+                    {col.render
+                      ? col.render(record[col.key], record, index)
+                      : record[col.key]}
+                  </TableCell>
+                ))}
+              </TableRow>
+              {expanded && (
+                <TableRow className="bg-muted hover:bg-muted">
+                  <TableCell colSpan={columns.length} className="px-4 py-4">
+                    {expandable!.expandedRowRender(record)}
+                  </TableCell>
+                </TableRow>
+              )}
+            </React.Fragment>
+          );
+        })}
+        {data.length === 0 && (
+          <TableRow>
+            <TableCell
+              colSpan={columns.length}
+              className="text-center py-12 text-muted-foreground"
+            >
+              暂无数据
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </ShadcnTable>
   );
 }
 
