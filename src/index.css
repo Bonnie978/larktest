@@ -15,6 +15,9 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-chart-8: var(--chart-8);
+  --color-chart-7: var(--chart-7);
+  --color-chart-6: var(--chart-6);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -74,10 +77,13 @@
   --input: #E5E6EB;
   --ring: #1664FF;
   --chart-1: #1664FF;
-  --chart-2: #00B42A;
-  --chart-3: #FF7D00;
-  --chart-4: #F53F3F;
-  --chart-5: #722ED1;
+  --chart-2: #14C9C9;
+  --chart-3: #78D3F8;
+  --chart-4: #9FDB1D;
+  --chart-5: #F7BA1E;
+  --chart-6: #722ED1;
+  --chart-7: #F53F3F;
+  --chart-8: #FF7D00;
   --radius: 0.5rem;
   --sidebar: #1D2129;
   --sidebar-foreground: rgba(255, 255, 255, 0.85);
@@ -87,6 +93,25 @@
   --sidebar-accent-foreground: rgba(255, 255, 255, 0.85);
   --sidebar-border: rgba(255, 255, 255, 0.06);
   --sidebar-ring: #1664FF;
+}
+
+/* react-grid-layout */
+.dashboard-editing .react-grid-item {
+  border: 1px dashed rgba(22, 100, 255, 0.3);
+  border-radius: var(--radius-lg);
+  transition: box-shadow 0.2s;
+}
+.dashboard-editing .react-grid-item:hover {
+  box-shadow: 0 2px 8px rgba(22, 100, 255, 0.15);
+}
+.react-grid-item.react-grid-placeholder {
+  background: rgba(22, 100, 255, 0.08) !important;
+  border: 2px dashed rgba(22, 100, 255, 0.4) !important;
+  border-radius: var(--radius-lg);
+}
+.chart-builder-dialog {
+  width: 900px;
+  max-height: 640px;
 }
 
 @layer base {

@@ -8,6 +8,7 @@ import type {
   QualityRecord,
   WorkOrder,
 } from '@/mock/types';
+import type { DataSourceMeta } from '@/types/dashboard';
 
 // 生产概览
 export const getKPI = () => request<KPIData[]>('/production/kpi');
@@ -28,3 +29,8 @@ export const getQualityRecords = (params?: { lineName?: string; defectType?: str
 
 // 工单管理
 export const getOrders = () => request<WorkOrder[]>('/orders');
+
+// 数据源
+export const getDatasources = () => request<DataSourceMeta[]>('/datasource');
+export const getDatasourceData = (id: string, params?: Record<string, string>) =>
+  request<Record<string, any>[]>(`/datasource/${id}/data`, params);
