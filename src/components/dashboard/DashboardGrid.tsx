@@ -1,5 +1,5 @@
-import { useRef, useMemo } from 'react';
-import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
+import { useMemo } from 'react';
+import { GridLayout, useContainerWidth } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -24,8 +24,7 @@ export default function DashboardGrid({
   onDeleteCard,
   onChartTypeChange,
 }: DashboardGridProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const width = useContainerWidth(containerRef);
+  const { width, containerRef } = useContainerWidth();
 
   const layout = useMemo(
     () =>
@@ -44,11 +43,10 @@ export default function DashboardGrid({
   return (
     <div ref={containerRef} className={isEditing ? 'dashboard-editing' : ''}>
       {width > 0 && (
-        <ResponsiveGridLayout
+        <GridLayout
+          layout={layout}
           width={width}
-          layouts={{ lg: layout }}
-          breakpoints={{ lg: 1200 }}
-          cols={{ lg: GRID_CONFIG.cols }}
+          cols={GRID_CONFIG.cols}
           rowHeight={GRID_CONFIG.rowHeight}
           margin={GRID_CONFIG.margin}
           containerPadding={GRID_CONFIG.containerPadding}
@@ -68,7 +66,7 @@ export default function DashboardGrid({
               />
             </div>
           ))}
-        </ResponsiveGridLayout>
+        </GridLayout>
       )}
     </div>
   );
