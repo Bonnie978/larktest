@@ -35,7 +35,7 @@ export default function DashboardGridStack({
     const grid = GridStack.init(
       {
         column: 12,
-        cellHeight: 80,
+        cellHeight: 100,
         margin: 12,
         float: false,
         animate: true,
