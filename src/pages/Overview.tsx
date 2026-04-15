@@ -1,10 +1,15 @@
+import { useState } from 'react';
 import KPICard from '@/components/KPICard';
-import Table, { type Column } from '@/components/Table';
 import Tag from '@/components/Tag';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getKPI, getLineProduction, getWeeklyDefects, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
+import { Card, CardContent } from '@/components/ui/card';
+import ChartCard from '@/components/ChartCard';
+import { indicators, type ChartType } from '@/components/indicators';
+import { getKPI, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
-import type { LineProductionRow, WeeklyDefectRow } from '@/mock/types';
+
+const lineProductionIndicator = indicators.find((i) => i.id === 'line-production')!;
+const weeklyDefectIndicator = indicators.find((i) => i.id === 'weekly-defect-rate')!;
+const defectTypeIndicator = indicators.find((i) => i.id === 'defect-type-distribution')!;
 
 export default function Overview() {
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -14,12 +19,17 @@ export default function Overview() {
   });
 
   const { data: kpiData } = useRequest(getKPI);
-  const { data: lineProductionData } = useRequest(getLineProduction);
-  const { data: weeklyDefectData } = useRequest(getWeeklyDefects);
+  const { data: lineProductionData } = useRequest(lineProductionIndicator.fetchData);
+  const { data: weeklyDefectData } = useRequest(weeklyDefectIndicator.fetchData);
+  const { data: defectTypeData } = useRequest(defectTypeIndicator.fetchData);
   const { data: lines } = useRequest(getLines);
   const { data: equipment } = useRequest(getEquipment);
   const { data: orders } = useRequest(getOrders);
   const { data: qualityRecords } = useRequest(getQualityRecords);
+
+  const [lineChartType, setLineChartType] = useState<ChartType>(lineProductionIndicator.defaultChartType);
+  const [defectChartType, setDefectChartType] = useState<ChartType>(weeklyDefectIndicator.defaultChartType);
+  const [defectTypeChartType, setDefectTypeChartType] = useState<ChartType>(defectTypeIndicator.defaultChartType);
 
   const runningLines = lines?.filter(l => l.status === '运行中').length ?? 0;
   const totalLines = lines?.length ?? 0;
@@ -28,40 +38,6 @@ export default function Overview() {
   const pendingOrders = orders?.filter(o => o.deliveryStatus === '进行中').length ?? 0;
   const riskOrders = orders?.filter(o => o.deliveryStatus === '风险').length ?? 0;
   const pendingQuality = qualityRecords?.filter(q => q.status === '待处理').length ?? 0;
-
-  const productionColumns: Column<LineProductionRow>[] = [
-    { key: 'lineName', title: '产线编号' },
-    { key: 'shift', title: '班次' },
-    { key: 'planned', title: '计划产量', align: 'right', render: (v: number) => v.toLocaleString() },
-    { key: 'actual', title: '实际产量', align: 'right', render: (v: number) => v.toLocaleString() },
-    {
-      key: 'completionRate', title: '完成率', align: 'right',
-      render: (v: number) => (
-        <span className={v < 85 ? 'text-[#F53F3F] font-medium' : ''}>{v}%</span>
-      ),
-    },
-    {
-      key: 'status', title: '状态', align: 'center',
-      render: (_: any, record: LineProductionRow) => (
-        <Tag type={record.completionRate < 85 ? 'warning' : 'success'}>
-          {record.completionRate < 85 ? '未达标' : '达标'}
-        </Tag>
-      ),
-    },
-  ];
-
-  const defectColumns: Column<WeeklyDefectRow>[] = [
-    { key: 'date', title: '日期' },
-    { key: 'inspectedQty', title: '检验数量', align: 'right', render: (v: number) => v.toLocaleString() },
-    { key: 'defectQty', title: '不良数', align: 'right', render: (v: number) => v.toLocaleString() },
-    {
-      key: 'defectRate', title: '不良率', align: 'right',
-      render: (v: number) => (
-        <span className={v > 2.5 ? 'text-[#F53F3F] font-medium' : ''}>{v}%</span>
-      ),
-    },
-    { key: 'mainDefectType', title: '主要不良类型' },
-  ];
 
   return (
     <div className="p-6 space-y-5">
@@ -131,23 +107,35 @@ export default function Overview() {
         </Card>
       </div>
 
-      <Card className="shadow-sm">
-        <CardHeader className="pb-0 pt-4 px-5">
-          <CardTitle className="text-[15px] font-medium">产线产量完成情况</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0 pb-0 pt-3">
-          <Table<LineProductionRow> columns={productionColumns} data={lineProductionData ?? []} rowKey="lineId" />
-        </CardContent>
-      </Card>
+      <ChartCard
+        title={lineProductionIndicator.name}
+        chartType={lineChartType}
+        supportedTypes={lineProductionIndicator.supportedChartTypes}
+        data={lineProductionData ?? []}
+        columns={lineProductionIndicator.columns}
+        chartConfig={lineProductionIndicator.chartConfig}
+        onChartTypeChange={setLineChartType}
+      />
 
-      <Card className="shadow-sm">
-        <CardHeader className="pb-0 pt-4 px-5">
-          <CardTitle className="text-[15px] font-medium">近 7 天不良数据汇总</CardTitle>
-        </CardHeader>
-        <CardContent className="px-0 pb-0 pt-3">
-          <Table<WeeklyDefectRow> columns={defectColumns} data={weeklyDefectData ?? []} rowKey="date" />
-        </CardContent>
-      </Card>
+      <ChartCard
+        title={weeklyDefectIndicator.name}
+        chartType={defectChartType}
+        supportedTypes={weeklyDefectIndicator.supportedChartTypes}
+        data={weeklyDefectData ?? []}
+        columns={weeklyDefectIndicator.columns}
+        chartConfig={weeklyDefectIndicator.chartConfig}
+        onChartTypeChange={setDefectChartType}
+      />
+
+      <ChartCard
+        title={defectTypeIndicator.name}
+        chartType={defectTypeChartType}
+        supportedTypes={defectTypeIndicator.supportedChartTypes}
+        data={defectTypeData ?? []}
+        columns={defectTypeIndicator.columns}
+        chartConfig={defectTypeIndicator.chartConfig}
+        onChartTypeChange={setDefectTypeChartType}
+      />
     </div>
   );
 }

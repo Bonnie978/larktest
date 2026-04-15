@@ -1,0 +1,38 @@
+[
+  {
+    "description": "生产概览页展示产线产量柱状图",
+    "category": "functional",
+    "steps": [
+      "打开生产概览页",
+      "页面应包含一个产线产量图表卡片",
+      "默认以柱状图展示各产线的计划产量和实际产量对比",
+      "柱状图使用 Recharts BarChart 渲染",
+      "图表颜色使用火山引擎主色 #1664FF 及辅色"
+    ],
+    "passes": true
+  },
+  {
+    "description": "生产概览页展示7天不良率折线趋势图",
+    "category": "functional",
+    "steps": [
+      "打开生产概览页",
+      "页面应包含一个不良率趋势图表卡片",
+      "默认以折线图展示近7天不良率变化趋势",
+      "折线图使用 Recharts LineChart 渲染",
+      "超过2.5%的数据点应以红色标注"
+    ],
+    "passes": true
+  },
+  {
+    "description": "生产概览页展示不良类型饼图",
+    "category": "functional",
+    "steps": [
+      "打开生产概览页",
+      "页面应包含一个不良类型分布图表卡片",
+      "以饼图展示各不良类型的占比",
+      "饼图使用 Recharts PieChart 渲染",
+      "每个扇区显示百分比标签"
+    ],
+    "passes": true
+  }
+]
