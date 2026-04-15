@@ -6,7 +6,7 @@ export const LAYOUT_VERSION = 2;
 
 export const GRID_CONFIG = {
   cols: 12,
-  rowHeight: 100,
+  rowHeight: 70,
   margin: [12, 12] as [number, number],
   containerPadding: [0, 0] as [number, number],
   minW: 4,
