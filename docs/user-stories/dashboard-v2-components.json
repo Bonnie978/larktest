@@ -1,0 +1,47 @@
+[
+  {
+    "description": "安装 gridstack.js 并创建 DashboardGridStack 组件",
+    "category": "functional",
+    "steps": [
+      "npm install gridstack",
+      "创建 src/components/DashboardGridStack.tsx",
+      "基于 GridStack.init 初始化 12 列网格，cellHeight 80，margin 12",
+      "Props 接收 items/isEditing/onLayoutChange/onDeleteCard/onEditCard/renderCard",
+      "编辑模式：enableMove(true) + enableResize(true)，卡片显示编辑和删除按钮",
+      "查看模式：enableMove(false) + enableResize(false)",
+      "监听 gridstack change 事件同步布局到 React state",
+      "TypeScript 编译无错误"
+    ],
+    "passes": true
+  },
+  {
+    "description": "看板状态管理 hook（useDashboardStore + 测试）",
+    "category": "functional",
+    "steps": [
+      "创建 src/hooks/useDashboardStore.ts",
+      "导出 loadDashboard/saveDashboard 纯函数和 useDashboardStore hook",
+      "DEFAULT_CARDS 包含 3 个预设卡片（产线产量柱状图、不良率折线图、不良类型饼图）",
+      "localStorage 键为 dashboard-v2，版本号 version: 2",
+      "hook 提供：cards, isEditing, startEditing, save, cancel, addCard, updateCard, deleteCard, updateLayout, resetToDefault",
+      "创建 src/hooks/__tests__/useDashboardStore.test.ts，至少 5 个测试",
+      "测试覆盖：空 localStorage 返回默认、加载已保存、损坏数据 fallback、错误版本 fallback、save 写入",
+      "所有测试通过"
+    ],
+    "passes": true
+  },
+  {
+    "description": "看板卡片渲染器 DashboardCardRenderer",
+    "category": "functional",
+    "steps": [
+      "创建 src/components/DashboardCardRenderer.tsx",
+      "Props: config(CardConfig) + onChartTypeChange",
+      "根据 config.dataSourceId 调用 getDataSourceData 获取数据",
+      "调用 aggregate() 处理数据（使用 config 中的 groupByField/valueFields/aggregation）",
+      "根据 config.chartType 渲染 Recharts 图表（bar/line/pie）",
+      "卡片头部显示标题 + 图表类型切换按钮组",
+      "使用火山引擎色板 #1664FF, #14C9C9, #78D3F8 等",
+      "TypeScript 编译无错误"
+    ],
+    "passes": true
+  }
+]

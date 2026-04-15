@@ -1,0 +1,50 @@
+[
+  {
+    "description": "类型定义和数据源注册表",
+    "category": "functional",
+    "steps": [
+      "创建 src/types/dashboard.ts，包含 ChartType, Aggregation, FieldMeta, DataSourceMeta, CardConfig, GridPosition, DashboardCard, DashboardLayout 类型",
+      "创建 src/config/dataSources.ts，注册 5 个数据源（line-production, equipment, quality, orders, weekly-defects），每个含 id/name/icon/fields",
+      "TypeScript 编译无错误"
+    ],
+    "passes": true
+  },
+  {
+    "description": "前端聚合引擎（纯函数 + 测试）",
+    "category": "functional",
+    "steps": [
+      "创建 src/lib/aggregationEngine.ts，导出 aggregate 函数",
+      "支持 sum/avg/count/max/none 五种聚合方式",
+      "按 groupByField 分组，对每个 valueField 独立聚合",
+      "创建 src/lib/__tests__/aggregationEngine.test.ts，至少 8 个测试用例",
+      "测试覆盖：sum、avg、count、max、none、多 valueFields、空数组、单条数据",
+      "所有测试通过"
+    ],
+    "passes": true
+  },
+  {
+    "description": "后端通用数据源查询 API",
+    "category": "functional",
+    "steps": [
+      "创建 server/src/routes/datasource.ts",
+      "GET /api/datasource 返回所有数据源元数据（id/name/fields）",
+      "GET /api/datasource/:id/data 返回指定数据源的原始数据",
+      "支持 fields query 参数进行字段投影（逗号分隔）",
+      "支持其他 query 参数作为等值筛选",
+      "在 server/src/index.ts 注册路由",
+      "curl 验证 API 返回正确数据"
+    ],
+    "passes": true
+  },
+  {
+    "description": "前端 API 新增 getDataSources 和 getDataSourceData",
+    "category": "functional",
+    "steps": [
+      "在 src/api/index.ts 添加 getDataSources() 和 getDataSourceData(id, params?) 函数",
+      "getDataSources 调用 GET /api/datasource",
+      "getDataSourceData 调用 GET /api/datasource/:id/data",
+      "TypeScript 编译无错误"
+    ],
+    "passes": true
+  }
+]

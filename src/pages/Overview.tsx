@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import KPICard from '@/components/KPICard';
-import Tag from '@/components/Tag';
 import { Card, CardContent } from '@/components/ui/card';
-import ChartCard from '@/components/ChartCard';
-import { indicators, type ChartType } from '@/components/indicators';
+import DashboardGridStack from '@/components/DashboardGridStack';
+import DashboardCardRenderer from '@/components/DashboardCardRenderer';
+import DashboardToolbar from '@/components/DashboardToolbar';
+import { ChartBuilder } from '@/components/ChartBuilder';
+import { useDashboardStore } from '@/hooks/useDashboardStore';
 import { getKPI, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
-
-const lineProductionIndicator = indicators.find((i) => i.id === 'line-production')!;
-const weeklyDefectIndicator = indicators.find((i) => i.id === 'weekly-defect-rate')!;
-const defectTypeIndicator = indicators.find((i) => i.id === 'defect-type-distribution')!;
+import type { CardConfig, ChartType } from '@/types/dashboard';
 
 export default function Overview() {
   const today = new Date().toLocaleDateString('zh-CN', {
@@ -19,17 +18,39 @@ export default function Overview() {
   });
 
   const { data: kpiData } = useRequest(getKPI);
-  const { data: lineProductionData } = useRequest(lineProductionIndicator.fetchData);
-  const { data: weeklyDefectData } = useRequest(weeklyDefectIndicator.fetchData);
-  const { data: defectTypeData } = useRequest(defectTypeIndicator.fetchData);
   const { data: lines } = useRequest(getLines);
   const { data: equipment } = useRequest(getEquipment);
   const { data: orders } = useRequest(getOrders);
   const { data: qualityRecords } = useRequest(getQualityRecords);
 
-  const [lineChartType, setLineChartType] = useState<ChartType>(lineProductionIndicator.defaultChartType);
-  const [defectChartType, setDefectChartType] = useState<ChartType>(weeklyDefectIndicator.defaultChartType);
-  const [defectTypeChartType, setDefectTypeChartType] = useState<ChartType>(defectTypeIndicator.defaultChartType);
+  const {
+    cards, isEditing, startEditing, save, cancel,
+    addCard, updateCard, deleteCard, updateLayout, resetToDefault,
+  } = useDashboardStore();
+
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+
+  // 编辑卡片
+  const handleEditCard = (cardId: string) => {
+    setEditingCardId(cardId);
+    setBuilderOpen(true);
+  };
+
+  // 搭建器确认
+  const handleBuilderConfirm = (config: CardConfig) => {
+    if (editingCardId) {
+      updateCard(editingCardId, config);
+    } else {
+      addCard(config);
+    }
+    setEditingCardId(null);
+  };
+
+  // 图表类型切换
+  const handleChartTypeChange = (cardId: string, type: ChartType) => {
+    updateCard(cardId, { chartType: type } as Partial<CardConfig>);
+  };
 
   const runningLines = lines?.filter(l => l.status === '运行中').length ?? 0;
   const totalLines = lines?.length ?? 0;
@@ -43,7 +64,17 @@ export default function Overview() {
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">生产概览</h1>
-        <span className="text-sm text-muted-foreground">{today}</span>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-muted-foreground">{today}</span>
+          <DashboardToolbar
+            isEditing={isEditing}
+            onEdit={startEditing}
+            onSave={save}
+            onCancel={cancel}
+            onReset={resetToDefault}
+            onAddCard={() => { setEditingCardId(null); setBuilderOpen(true); }}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-5 gap-4">
@@ -107,34 +138,26 @@ export default function Overview() {
         </Card>
       </div>
 
-      <ChartCard
-        title={lineProductionIndicator.name}
-        chartType={lineChartType}
-        supportedTypes={lineProductionIndicator.supportedChartTypes}
-        data={lineProductionData ?? []}
-        columns={lineProductionIndicator.columns}
-        chartConfig={lineProductionIndicator.chartConfig}
-        onChartTypeChange={setLineChartType}
+      {/* 图表看板区域 */}
+      <DashboardGridStack
+        items={cards}
+        isEditing={isEditing}
+        onLayoutChange={updateLayout}
+        onDeleteCard={deleteCard}
+        onEditCard={handleEditCard}
+        renderCard={(config) => (
+          <DashboardCardRenderer
+            config={config}
+            onChartTypeChange={(type) => handleChartTypeChange(config.id, type)}
+          />
+        )}
       />
 
-      <ChartCard
-        title={weeklyDefectIndicator.name}
-        chartType={defectChartType}
-        supportedTypes={weeklyDefectIndicator.supportedChartTypes}
-        data={weeklyDefectData ?? []}
-        columns={weeklyDefectIndicator.columns}
-        chartConfig={weeklyDefectIndicator.chartConfig}
-        onChartTypeChange={setDefectChartType}
-      />
-
-      <ChartCard
-        title={defectTypeIndicator.name}
-        chartType={defectTypeChartType}
-        supportedTypes={defectTypeIndicator.supportedChartTypes}
-        data={defectTypeData ?? []}
-        columns={defectTypeIndicator.columns}
-        chartConfig={defectTypeIndicator.chartConfig}
-        onChartTypeChange={setDefectTypeChartType}
+      <ChartBuilder
+        open={builderOpen}
+        onClose={() => { setBuilderOpen(false); setEditingCardId(null); }}
+        onConfirm={handleBuilderConfirm}
+        editingCard={editingCardId ? cards.find(c => c.config.id === editingCardId)?.config : undefined}
       />
     </div>
   );

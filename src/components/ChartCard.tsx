@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Table, { type Column } from '@/components/Table';
-import type { ChartType } from './indicators';
+import type { ChartType } from '@/types/dashboard';
 import {
   BarChart,
   Bar,

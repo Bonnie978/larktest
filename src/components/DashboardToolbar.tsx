@@ -31,7 +31,7 @@ const DashboardToolbar: React.FC<DashboardToolbarProps> = ({
   return (
     <div className="flex gap-2">
       <Button variant="outline" onClick={onAddCard}>
-        添加卡片
+        新建图表
       </Button>
       <Button variant="ghost" onClick={onReset}>
         恢复默认
