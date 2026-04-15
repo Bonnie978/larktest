@@ -26,8 +26,8 @@ export default function PieChartComponent({
           data={data}
           dataKey={dataKey}
           nameKey={groupByField}
-          innerRadius={50}
-          outerRadius={110}
+          innerRadius={40}
+          outerRadius={80}
           label={({ name, value }) => {
             const pct = total > 0 ? ((value / total) * 100).toFixed(0) : '0';
             return `${name} ${pct}%`;
