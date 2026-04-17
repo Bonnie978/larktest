@@ -30,6 +30,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { DataAggregator } from './DataAggregator';
 
 export interface CardConfig {
   id: string;
@@ -142,67 +143,17 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
   // Generate preview data when config changes
   useEffect(() => {
     if (rawData.length > 0 && dimension && metrics.length > 0) {
-      const aggregated = aggregateData(rawData, dimension, metrics, aggregation);
+      const aggregated = DataAggregator.aggregate({
+        data: rawData,
+        dimension,
+        metrics,
+        aggregation,
+      });
       setPreviewData(aggregated);
     } else {
       setPreviewData([]);
     }
   }, [rawData, dimension, metrics, aggregation]);
-
-  const aggregateData = (
-    data: any[],
-    dim: string,
-    mets: string[],
-    agg: CardConfig['aggregation']
-  ): any[] => {
-    if (agg === 'none') {
-      return data.map((row) => {
-        const result: any = { [dim]: row[dim] };
-        mets.forEach((m) => {
-          result[m] = row[m];
-        });
-        return result;
-      });
-    }
-
-    // Group by dimension
-    const groups: Record<string, any[]> = {};
-    data.forEach((row) => {
-      const key = row[dim];
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(row);
-    });
-
-    // Apply aggregation
-    return Object.entries(groups).map(([key, rows]) => {
-      const result: any = { [dim]: key };
-      mets.forEach((m) => {
-        const values = rows.map((r) => r[m]).filter((v) => typeof v === 'number');
-        if (values.length === 0) {
-          result[m] = 0;
-          return;
-        }
-        switch (agg) {
-          case 'sum':
-            result[m] = values.reduce((a, b) => a + b, 0);
-            break;
-          case 'avg':
-            result[m] = values.reduce((a, b) => a + b, 0) / values.length;
-            break;
-          case 'count':
-            result[m] = values.length;
-            break;
-          case 'max':
-            result[m] = Math.max(...values);
-            break;
-          case 'min':
-            result[m] = Math.min(...values);
-            break;
-        }
-      });
-      return result;
-    });
-  };
 
   const handleDataSourceChange = (value: string) => {
     setDataSourceId(value);
