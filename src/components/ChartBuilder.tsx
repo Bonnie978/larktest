@@ -263,7 +263,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
               outerRadius={80}
               label
             >
-              {previewData.map((entry, index) => (
+              {previewData.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
@@ -288,7 +288,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
           {/* Data Source Selection */}
           <div>
             <label className="text-sm font-medium mb-2 block">数据源</label>
-            <ShadcnSelect value={dataSourceId} onValueChange={handleDataSourceChange}>
+            <ShadcnSelect value={dataSourceId} onValueChange={(val) => handleDataSourceChange(val || '')}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="选择数据源" />
               </SelectTrigger>
@@ -307,7 +307,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
           {dataSourceId && (
             <div>
               <label className="text-sm font-medium mb-2 block">维度字段（X轴）</label>
-              <ShadcnSelect value={dimension} onValueChange={setDimension}>
+              <ShadcnSelect value={dimension} onValueChange={(val) => setDimension(val || '')}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="选择维度字段" />
                 </SelectTrigger>
@@ -349,7 +349,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
           {dataSourceId && (
             <div>
               <label className="text-sm font-medium mb-2 block">聚合方式</label>
-              <ShadcnSelect value={aggregation} onValueChange={(v) => setAggregation(v as any)}>
+              <ShadcnSelect value={aggregation} onValueChange={(v) => setAggregation((v || 'none') as any)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
