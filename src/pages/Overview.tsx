@@ -1,5 +1,4 @@
 import KPICard from '@/components/KPICard';
-import Tag from '@/components/Tag';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import DashboardGrid from '@/components/DashboardGrid';

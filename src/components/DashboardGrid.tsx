@@ -1,13 +1,17 @@
-import { useMemo, useRef } from 'react';
-import { useContainerWidth, useResponsiveLayout } from 'react-grid-layout';
+import { useMemo } from 'react';
+import GridLayout from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import ChartCard from '@/components/ChartCard';
-import type { CardItem, ChartType, LayoutItem } from '@/types/dashboard';
+import type { CardItem, ChartType } from '@/types/dashboard';
+
+const { Responsive, WidthProvider } = GridLayout as any;
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 interface DashboardGridProps {
   cards: CardItem[];
   isEditing: boolean;
-  onLayoutChange: (layout: LayoutItem[]) => void;
+  onLayoutChange: (layout: any[]) => void;
   onEditCard: (id: string) => void;
   onDeleteCard: (id: string) => void;
   onChartTypeChange: (id: string, chartType: ChartType) => void;
@@ -21,9 +25,6 @@ export default function DashboardGrid({
   onDeleteCard,
   onChartTypeChange,
 }: DashboardGridProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const width = useContainerWidth(containerRef);
-
   const layout = useMemo(
     () =>
       cards.map((card) => ({
@@ -38,39 +39,32 @@ export default function DashboardGrid({
     [cards]
   );
 
-  const handleLayoutChange = (newLayout: ReactGridLayout.Layout[]) => {
-    onLayoutChange(
-      newLayout.map((l) => ({ i: l.i, x: l.x, y: l.y, w: l.w, h: l.h }))
-    );
-  };
-
-  const { gridProps, gridItemProps } = useResponsiveLayout({
-    width,
-    breakpoints: { lg: 996, md: 768, sm: 480 },
-    cols: { lg: 12, md: 12, sm: 6 },
-    layouts: { lg: layout },
-    rowHeight: 80,
-    margin: [12, 12],
-    isDraggable: isEditing,
-    isResizable: isEditing,
-    onLayoutChange: handleLayoutChange,
-  });
-
   return (
-    <div ref={containerRef} className="w-full">
-      <div {...gridProps}>
-        {cards.map((card, idx) => (
-          <div key={card.config.id} {...gridItemProps(idx)}>
-            <ChartCard
-              config={card.config}
-              isEditing={isEditing}
-              onEdit={() => onEditCard(card.config.id)}
-              onDelete={() => onDeleteCard(card.config.id)}
-              onChartTypeChange={(ct) => onChartTypeChange(card.config.id, ct)}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
+    <ResponsiveGridLayout
+      className="dashboard-grid"
+      layouts={{ lg: layout }}
+      breakpoints={{ lg: 1200, md: 996, sm: 768 }}
+      cols={{ lg: 12, md: 12, sm: 6 }}
+      rowHeight={80}
+      margin={[12, 12] as [number, number]}
+      isDraggable={isEditing}
+      isResizable={isEditing}
+      onLayoutChange={(currentLayout: any[]) => {
+        onLayoutChange(currentLayout);
+      }}
+      draggableHandle=".drag-handle"
+    >
+      {cards.map((card) => (
+        <div key={card.config.id} className={isEditing ? 'drag-handle' : ''}>
+          <ChartCard
+            config={card.config}
+            isEditing={isEditing}
+            onEdit={() => onEditCard(card.config.id)}
+            onDelete={() => onDeleteCard(card.config.id)}
+            onChartTypeChange={(ct: ChartType) => onChartTypeChange(card.config.id, ct)}
+          />
+        </div>
+      ))}
+    </ResponsiveGridLayout>
   );
 }

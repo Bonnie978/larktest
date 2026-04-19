@@ -28,3 +28,14 @@ export const getQualityRecords = (params?: { lineName?: string; defectType?: str
 
 // 工单管理
 export const getOrders = () => request<WorkOrder[]>('/orders');
+
+// 数据源
+export interface DataSourceMeta {
+  id: string;
+  name: string;
+  description: string;
+  fields: Array<{ name: string; type: string }>;
+}
+
+export const getDataSources = () => request<DataSourceMeta[]>('/datasource');
+export const getDataSourceData = (id: string) => request<any[]>(`/datasource/${id}/data`);
