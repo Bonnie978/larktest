@@ -20,8 +20,8 @@ interface SelectProps {
 }
 
 const Select: React.FC<SelectProps> = ({ label, value, options, onChange }) => {
-  const handleChange = (val: string) => {
-    if (val === "__all__") {
+  const handleChange = (val: string | null) => {
+    if (val === "__all__" || val === null) {
       onChange("");
     } else {
       onChange(val);
