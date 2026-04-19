@@ -1,142 +1,169 @@
 import { Router } from 'express';
 import { lineProductionData, weeklyDefectData } from '../mock/production.js';
-import { productionLines } from '../mock/lines.js';
 import { equipmentList } from '../mock/equipment.js';
 import { qualityRecords } from '../mock/quality.js';
 import { workOrders } from '../mock/orders.js';
 
 const router = Router();
 
-// 数据源元数据定义
-const datasources = [
+// ---------------------------------------------------------------------------
+// Data-source metadata definitions
+// ---------------------------------------------------------------------------
+
+interface FieldMeta {
+  key: string;
+  label: string;
+  type: 'string' | 'number';
+}
+
+interface DataSourceMeta {
+  id: string;
+  name: string;
+  fields: FieldMeta[];
+}
+
+const datasources: DataSourceMeta[] = [
   {
     id: 'line-production',
-    name: '产线生产数据',
+    name: '产线产量',
     fields: [
-      { name: 'lineId', type: 'string', label: '产线ID' },
-      { name: 'lineName', type: 'string', label: '产线名称' },
-      { name: 'shift', type: 'string', label: '班次' },
-      { name: 'planned', type: 'number', label: '计划产量' },
-      { name: 'actual', type: 'number', label: '实际产量' },
-      { name: 'completionRate', type: 'number', label: '完成率' },
-      { name: 'status', type: 'string', label: '状态' },
+      { key: 'lineId', label: '产线编号', type: 'string' },
+      { key: 'lineName', label: '产线名称', type: 'string' },
+      { key: 'shift', label: '班次', type: 'string' },
+      { key: 'planned', label: '计划产量', type: 'number' },
+      { key: 'actual', label: '实际产量', type: 'number' },
+      { key: 'completionRate', label: '完成率', type: 'number' },
+      { key: 'status', label: '状态', type: 'string' },
     ],
   },
   {
     id: 'equipment',
-    name: '设备状态数据',
+    name: '设备状态',
     fields: [
-      { name: 'id', type: 'string', label: '设备ID' },
-      { name: 'name', type: 'string', label: '设备名称' },
-      { name: 'lineId', type: 'string', label: '所属产线ID' },
-      { name: 'lineName', type: 'string', label: '所属产线' },
-      { name: 'type', type: 'string', label: '设备类型' },
-      { name: 'availability', type: 'number', label: '可用率' },
-      { name: 'performance', type: 'number', label: '性能率' },
-      { name: 'quality', type: 'number', label: '质量率' },
-      { name: 'oee', type: 'number', label: 'OEE' },
-      { name: 'status', type: 'string', label: '状态' },
+      { key: 'id', label: '设备编号', type: 'string' },
+      { key: 'name', label: '设备名称', type: 'string' },
+      { key: 'lineId', label: '产线编号', type: 'string' },
+      { key: 'lineName', label: '产线名称', type: 'string' },
+      { key: 'type', label: '设备类型', type: 'string' },
+      { key: 'availability', label: '可用率', type: 'number' },
+      { key: 'performance', label: '性能率', type: 'number' },
+      { key: 'quality', label: '质量率', type: 'number' },
+      { key: 'oee', label: 'OEE', type: 'number' },
+      { key: 'status', label: '状态', type: 'string' },
     ],
   },
   {
     id: 'quality',
-    name: '质量记录数据',
+    name: '质量记录',
     fields: [
-      { name: 'id', type: 'string', label: '记录ID' },
-      { name: 'batchNo', type: 'string', label: '批次号' },
-      { name: 'lineId', type: 'string', label: '产线ID' },
-      { name: 'lineName', type: 'string', label: '产线名称' },
-      { name: 'defectType', type: 'string', label: '缺陷类型' },
-      { name: 'defectCount', type: 'number', label: '缺陷数量' },
-      { name: 'inspector', type: 'string', label: '检验员' },
-      { name: 'occurTime', type: 'string', label: '发生时间' },
-      { name: 'status', type: 'string', label: '状态' },
-      { name: 'description', type: 'string', label: '描述' },
-      { name: 'resolution', type: 'string', label: '解决方案' },
+      { key: 'id', label: '记录编号', type: 'string' },
+      { key: 'batchNo', label: '批次号', type: 'string' },
+      { key: 'lineId', label: '产线编号', type: 'string' },
+      { key: 'lineName', label: '产线名称', type: 'string' },
+      { key: 'defectType', label: '缺陷类型', type: 'string' },
+      { key: 'defectCount', label: '缺陷数量', type: 'number' },
+      { key: 'inspector', label: '检验员', type: 'string' },
+      { key: 'occurTime', label: '发生时间', type: 'string' },
+      { key: 'status', label: '状态', type: 'string' },
+      { key: 'description', label: '描述', type: 'string' },
+      { key: 'resolution', label: '处理措施', type: 'string' },
     ],
   },
   {
     id: 'orders',
-    name: '工单数据',
+    name: '工单',
     fields: [
-      { name: 'id', type: 'string', label: '工单ID' },
-      { name: 'productModel', type: 'string', label: '产品型号' },
-      { name: 'customer', type: 'string', label: '客户' },
-      { name: 'plannedQty', type: 'number', label: '计划数量' },
-      { name: 'completedQty', type: 'number', label: '完成数量' },
-      { name: 'plannedStart', type: 'string', label: '计划开始' },
-      { name: 'plannedEnd', type: 'string', label: '计划结束' },
-      { name: 'actualEnd', type: 'string', label: '实际结束' },
-      { name: 'deliveryStatus', type: 'string', label: '交付状态' },
+      { key: 'id', label: '工单编号', type: 'string' },
+      { key: 'productModel', label: '产品型号', type: 'string' },
+      { key: 'customer', label: '客户', type: 'string' },
+      { key: 'plannedQty', label: '计划数量', type: 'number' },
+      { key: 'completedQty', label: '完成数量', type: 'number' },
+      { key: 'plannedStart', label: '计划开始', type: 'string' },
+      { key: 'plannedEnd', label: '计划结束', type: 'string' },
+      { key: 'actualEnd', label: '实际结束', type: 'string' },
+      { key: 'deliveryStatus', label: '交付状态', type: 'string' },
     ],
   },
   {
     id: 'weekly-defects',
-    name: '周缺陷统计',
+    name: '近7天不良趋势',
     fields: [
-      { name: 'date', type: 'string', label: '日期' },
-      { name: 'inspectedQty', type: 'number', label: '检验数量' },
-      { name: 'defectQty', type: 'number', label: '缺陷数量' },
-      { name: 'defectRate', type: 'number', label: '缺陷率' },
-      { name: 'mainDefectType', type: 'string', label: '主要缺陷类型' },
+      { key: 'date', label: '日期', type: 'string' },
+      { key: 'inspectedQty', label: '检验数量', type: 'number' },
+      { key: 'defectQty', label: '不良数量', type: 'number' },
+      { key: 'defectRate', label: '不良率', type: 'number' },
+      { key: 'mainDefectType', label: '主要缺陷类型', type: 'string' },
     ],
   },
 ];
 
-// 数据源ID到实际数据的映射
-const dataMapping: Record<string, any[]> = {
-  'line-production': lineProductionData,
-  'equipment': equipmentList,
-  'quality': qualityRecords,
-  'orders': workOrders,
-  'weekly-defects': weeklyDefectData,
+// Map datasource id → raw data array
+const dataMap: Record<string, Record<string, any>[]> = {
+  'line-production': lineProductionData as unknown as Record<string, any>[],
+  equipment: equipmentList as unknown as Record<string, any>[],
+  quality: qualityRecords as unknown as Record<string, any>[],
+  orders: workOrders as unknown as Record<string, any>[],
+  'weekly-defects': weeklyDefectData as unknown as Record<string, any>[],
 };
 
-// GET /api/datasource - 获取所有数据源元数据
+// ---------------------------------------------------------------------------
+// GET /api/datasource — return metadata for all datasources
+// ---------------------------------------------------------------------------
 router.get('/', (_req, res) => {
   res.json({ code: 0, data: datasources, message: 'success' });
 });
 
-// GET /api/datasource/:id/data - 获取指定数据源的数据
+// ---------------------------------------------------------------------------
+// GET /api/datasource/:id/data — return data with optional projection & filter
+// ---------------------------------------------------------------------------
 router.get('/:id/data', (req, res) => {
   const { id } = req.params;
-  const { fields, query } = req.query;
 
-  // 获取原始数据
-  const rawData = dataMapping[id];
-  if (!rawData) {
-    return res.status(404).json({ code: 404, message: '数据源不存在' });
+  const meta = datasources.find((ds) => ds.id === id);
+  if (!meta) {
+    res.status(404).json({ code: 1, data: null, message: `datasource "${id}" not found` });
+    return;
   }
 
-  let result = [...rawData];
+  let rows = dataMap[id] ?? [];
 
-  // 处理 query 参数（等值筛选）
-  if (query && typeof query === 'string') {
-    try {
-      const queryObj = JSON.parse(query);
-      result = result.filter((item) => {
-        return Object.entries(queryObj).every(([key, value]) => item[key] === value);
-      });
-    } catch (e) {
-      return res.status(400).json({ code: 400, message: 'query 参数格式错误' });
+  // --- fields projection ------------------------------------------------
+  const fieldsParam = req.query.fields;
+  const projectedKeys: string[] | null =
+    typeof fieldsParam === 'string' && fieldsParam
+      ? fieldsParam.split(',').map((f) => f.trim()).filter(Boolean)
+      : null;
+
+  // --- equality filters (every query param except "fields") -------------
+  const filters: Record<string, string> = {};
+  for (const [key, value] of Object.entries(req.query)) {
+    if (key === 'fields') continue;
+    if (typeof value === 'string' && value) {
+      filters[key] = value;
     }
   }
 
-  // 处理 fields 参数（字段投影）
-  if (fields && typeof fields === 'string') {
-    const fieldList = fields.split(',').map((f) => f.trim());
-    result = result.map((item) => {
+  // Apply equality filters
+  if (Object.keys(filters).length > 0) {
+    rows = rows.filter((row) =>
+      Object.entries(filters).every(([k, v]) => String(row[k]) === v),
+    );
+  }
+
+  // Apply field projection
+  if (projectedKeys) {
+    rows = rows.map((row) => {
       const projected: Record<string, any> = {};
-      fieldList.forEach((field) => {
-        if (field in item) {
-          projected[field] = item[field];
+      for (const k of projectedKeys) {
+        if (k in row) {
+          projected[k] = row[k];
         }
-      });
+      }
       return projected;
     });
   }
 
-  res.json({ code: 0, data: result, message: 'success' });
+  res.json({ code: 0, data: rows, message: 'success' });
 });
 
 export default router;
