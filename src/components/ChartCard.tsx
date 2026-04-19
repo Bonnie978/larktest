@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ReactECharts from 'echarts-for-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts';
-import { DataAggregator } from './DataAggregator';
+import { aggregate } from '@/utils/aggregate';
 import type { CardConfig } from './ChartBuilder';
 
 interface ChartCardProps {
@@ -15,7 +12,7 @@ interface ChartCardProps {
   onDelete: (id: string) => void;
 }
 
-const COLORS = ['#1664FF', '#00B42A', '#FF7D00', '#F53F3F', '#722ED1', '#14C9C9'];
+const COLORS = ['#1664FF', '#14C9C9', '#78D3F8', '#9FDB1D', '#F7BA1E', '#722ED1', '#F53F3F', '#FF7D00'];
 
 const ChartCard: React.FC<ChartCardProps> = ({ config, isEditing, onEdit, onDelete }) => {
   const [chartData, setChartData] = useState<any[]>([]);
@@ -29,10 +26,10 @@ const ChartCard: React.FC<ChartCardProps> = ({ config, isEditing, onEdit, onDele
       const res = await fetch(`http://localhost:3001/api/datasource/${config.dataSourceId}/data`);
       const json = await res.json();
       if (json.code === 0) {
-        const aggregated = DataAggregator.aggregate({
+        const aggregated = aggregate({
           data: json.data,
-          dimension: config.dimension,
-          metrics: config.metrics,
+          groupByField: config.dimension,
+          valueFields: config.metrics,
           aggregation: config.aggregation,
         });
         setChartData(aggregated);
@@ -48,6 +45,68 @@ const ChartCard: React.FC<ChartCardProps> = ({ config, isEditing, onEdit, onDele
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const getChartOption = () => {
+    if (chartData.length === 0) return null;
+    const { chartType, dimension, metrics } = config;
+    const dimValues = chartData.map((d) => d[dimension]);
+
+    if (chartType === 'bar') {
+      return {
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0 },
+        grid: { left: 50, right: 20, top: 10, bottom: 40 },
+        xAxis: { type: 'category', data: dimValues, axisLabel: { fontSize: 11 } },
+        yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
+        series: metrics.map((m, idx) => ({
+          name: m,
+          type: 'bar',
+          data: chartData.map((d) => d[m]),
+          itemStyle: { color: COLORS[idx % COLORS.length], borderRadius: [4, 4, 0, 0] },
+        })),
+      };
+    }
+
+    if (chartType === 'line') {
+      return {
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0 },
+        grid: { left: 50, right: 20, top: 10, bottom: 40 },
+        xAxis: { type: 'category', data: dimValues, axisLabel: { fontSize: 11 } },
+        yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
+        series: metrics.map((m, idx) => ({
+          name: m,
+          type: 'line',
+          smooth: true,
+          data: chartData.map((d) => d[m]),
+          lineStyle: { color: COLORS[idx % COLORS.length] },
+          itemStyle: { color: COLORS[idx % COLORS.length] },
+        })),
+      };
+    }
+
+    if (chartType === 'pie') {
+      const metric = metrics[0];
+      return {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0 },
+        series: [
+          {
+            type: 'pie',
+            radius: ['40%', '70%'],
+            data: chartData.map((d, idx) => ({
+              name: d[dimension],
+              value: d[metric],
+              itemStyle: { color: COLORS[idx % COLORS.length] },
+            })),
+            label: { show: true },
+          },
+        ],
+      };
+    }
+
+    return null;
+  };
+
   const renderChart = () => {
     if (loading) {
       return <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">加载中...</div>;
@@ -59,60 +118,10 @@ const ChartCard: React.FC<ChartCardProps> = ({ config, isEditing, onEdit, onDele
       return <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">暂无数据</div>;
     }
 
-    const { chartType, dimension, metrics } = config;
+    const option = getChartOption();
+    if (!option) return null;
 
-    if (chartType === 'bar') {
-      return (
-        <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={dimension} tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Legend />
-            {metrics.map((m, idx) => (
-              <Bar key={m} dataKey={m} fill={COLORS[idx % COLORS.length]} />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    if (chartType === 'line') {
-      return (
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={dimension} tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Legend />
-            {metrics.map((m, idx) => (
-              <Line key={m} type="monotone" dataKey={m} stroke={COLORS[idx % COLORS.length]} strokeWidth={2} />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    if (chartType === 'pie') {
-      const metric = metrics[0];
-      return (
-        <ResponsiveContainer width="100%" height={240}>
-          <PieChart>
-            <Pie data={chartData} dataKey={metric} nameKey={dimension} cx="50%" cy="50%" outerRadius={80} label>
-              {chartData.map((_entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    return null;
+    return <ReactECharts option={option} style={{ height: '240px' }} />;
   };
 
   return (

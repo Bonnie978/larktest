@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ReactECharts from 'echarts-for-react';
+import { aggregate, type AggregationType } from '@/utils/aggregate';
 import {
   Sheet,
   SheetContent,
@@ -14,23 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
-import { DataAggregator } from './DataAggregator';
 
 export interface CardConfig {
   id: string;
@@ -38,7 +23,7 @@ export interface CardConfig {
   dataSourceId: string;
   dimension: string;
   metrics: string[];
-  aggregation: 'none' | 'sum' | 'avg' | 'count' | 'max' | 'min';
+  aggregation: AggregationType;
   chartType: 'bar' | 'line' | 'pie';
 }
 
@@ -75,7 +60,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
   const [dataSourceId, setDataSourceId] = useState<string>('');
   const [dimension, setDimension] = useState<string>('');
   const [metrics, setMetrics] = useState<string[]>([]);
-  const [aggregation, setAggregation] = useState<CardConfig['aggregation']>('none');
+  const [aggregation, setAggregation] = useState<AggregationType>('none');
   const [chartType, setChartType] = useState<CardConfig['chartType']>('bar');
   const [title, setTitle] = useState<string>('');
   const [previewData, setPreviewData] = useState<any[]>([]);
@@ -92,7 +77,6 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
       setChartType(initialConfig.chartType);
       setTitle(initialConfig.title);
     } else {
-      // Reset for create mode
       setDataSourceId('');
       setDimension('');
       setMetrics([]);
@@ -126,7 +110,6 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
         .then((json) => {
           if (json.code === 0) {
             setRawData(json.data);
-            // Auto-select first string field as dimension and first number field as metric
             const currentSource = dataSources.find((ds) => ds.id === dataSourceId);
             if (currentSource && mode === 'create') {
               const stringField = currentSource.fields.find((f) => f.type === 'string');
@@ -143,10 +126,10 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
   // Generate preview data when config changes
   useEffect(() => {
     if (rawData.length > 0 && dimension && metrics.length > 0) {
-      const aggregated = DataAggregator.aggregate({
+      const aggregated = aggregate({
         data: rawData,
-        dimension,
-        metrics,
+        groupByField: dimension,
+        valueFields: metrics,
         aggregation,
       });
       setPreviewData(aggregated);
@@ -188,94 +171,69 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
   const dimensionFields = currentSource?.fields.filter((f) => f.type === 'string') || [];
   const metricFields = currentSource?.fields.filter((f) => f.type === 'number') || [];
 
-  const renderChart = () => {
-    if (previewData.length === 0) {
-      return (
-        <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
-          请选择数据源和字段以预览图表
-        </div>
-      );
-    }
+  const getChartOption = () => {
+    if (previewData.length === 0) return null;
 
-    const currentDimField = currentSource?.fields.find((f) => f.key === dimension);
-    const dimLabel = currentDimField?.label || dimension;
+    const dimValues = previewData.map((d) => d[dimension]);
 
     if (chartType === 'bar') {
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={previewData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={dimension} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {metrics.map((m, idx) => {
-              const field = currentSource?.fields.find((f) => f.key === m);
-              return (
-                <Bar key={m} dataKey={m} name={field?.label || m} fill={COLORS[idx % COLORS.length]} />
-              );
-            })}
-          </BarChart>
-        </ResponsiveContainer>
-      );
+      return {
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0 },
+        grid: { left: 50, right: 20, top: 20, bottom: 50 },
+        xAxis: { type: 'category', data: dimValues },
+        yAxis: { type: 'value' },
+        series: metrics.map((m, idx) => ({
+          name: currentSource?.fields.find((f) => f.key === m)?.label || m,
+          type: 'bar',
+          data: previewData.map((d) => d[m]),
+          itemStyle: { color: COLORS[idx % COLORS.length] },
+        })),
+      };
     }
 
     if (chartType === 'line') {
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={previewData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={dimension} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {metrics.map((m, idx) => {
-              const field = currentSource?.fields.find((f) => f.key === m);
-              return (
-                <Line
-                  key={m}
-                  type="monotone"
-                  dataKey={m}
-                  name={field?.label || m}
-                  stroke={COLORS[idx % COLORS.length]}
-                  strokeWidth={2}
-                />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-      );
+      return {
+        tooltip: { trigger: 'axis' },
+        legend: { bottom: 0 },
+        grid: { left: 50, right: 20, top: 20, bottom: 50 },
+        xAxis: { type: 'category', data: dimValues },
+        yAxis: { type: 'value' },
+        series: metrics.map((m, idx) => ({
+          name: currentSource?.fields.find((f) => f.key === m)?.label || m,
+          type: 'line',
+          smooth: true,
+          data: previewData.map((d) => d[m]),
+          lineStyle: { color: COLORS[idx % COLORS.length] },
+          itemStyle: { color: COLORS[idx % COLORS.length] },
+        })),
+      };
     }
 
     if (chartType === 'pie') {
-      // For pie chart, use first metric only
       const metric = metrics[0];
-      const field = currentSource?.fields.find((f) => f.key === metric);
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <PieChart>
-            <Pie
-              data={previewData}
-              dataKey={metric}
-              nameKey={dimension}
-              cx="50%"
-              cy="50%"
-              outerRadius={80}
-              label
-            >
-              {previewData.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        </ResponsiveContainer>
-      );
+      return {
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0 },
+        series: [
+          {
+            type: 'pie',
+            radius: ['40%', '70%'],
+            data: previewData.map((d, idx) => ({
+              name: d[dimension],
+              value: d[metric],
+              itemStyle: { color: COLORS[idx % COLORS.length] },
+            })),
+            label: { show: true },
+          },
+        ],
+      };
     }
 
     return null;
   };
+
+  const chartOption = getChartOption();
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
@@ -288,7 +246,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
           {/* Data Source Selection */}
           <div>
             <label className="text-sm font-medium mb-2 block">数据源</label>
-            <ShadcnSelect value={dataSourceId} onValueChange={(val) => handleDataSourceChange(val || '')}>
+            <ShadcnSelect value={dataSourceId} onValueChange={handleDataSourceChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="选择数据源" />
               </SelectTrigger>
@@ -307,7 +265,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
           {dataSourceId && (
             <div>
               <label className="text-sm font-medium mb-2 block">维度字段（X轴）</label>
-              <ShadcnSelect value={dimension} onValueChange={(val) => setDimension(val || '')}>
+              <ShadcnSelect value={dimension} onValueChange={setDimension}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="选择维度字段" />
                 </SelectTrigger>
@@ -349,7 +307,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
           {dataSourceId && (
             <div>
               <label className="text-sm font-medium mb-2 block">聚合方式</label>
-              <ShadcnSelect value={aggregation} onValueChange={(v) => setAggregation((v || 'none') as any)}>
+              <ShadcnSelect value={aggregation} onValueChange={(v) => setAggregation(v as AggregationType)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -359,7 +317,6 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
                   <SelectItem value="avg">平均值</SelectItem>
                   <SelectItem value="count">计数</SelectItem>
                   <SelectItem value="max">最大值</SelectItem>
-                  <SelectItem value="min">最小值</SelectItem>
                 </SelectContent>
               </ShadcnSelect>
             </div>
@@ -410,9 +367,15 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
           {dataSourceId && (
             <div>
               <label className="text-sm font-medium mb-2 block">实时预览</label>
-              <Card>
-                <CardContent className="pt-4">{renderChart()}</CardContent>
-              </Card>
+              <div className="border rounded-lg p-4 bg-card">
+                {chartOption ? (
+                  <ReactECharts option={chartOption} style={{ height: '300px' }} />
+                ) : (
+                  <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+                    请选择数据源和字段以预览图表
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
