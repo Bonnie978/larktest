@@ -30,18 +30,7 @@ export const getQualityRecords = (params?: { lineName?: string; defectType?: str
 export const getOrders = () => request<WorkOrder[]>('/orders');
 
 // 数据源
-export interface DataSourceField {
-  name: string;
-  type: 'string' | 'number' | 'date';
-  label: string;
-}
-
-export interface DataSourceMeta {
-  id: string;
-  name: string;
-  description: string;
-  fields: DataSourceField[];
-}
+import type { DataSourceMeta } from '@/types/dashboard';
 
 export const getDataSources = () => request<DataSourceMeta[]>('/datasource');
-export const getDataSourceData = (id: string) => request<any[]>(`/datasource/${id}/data`);
+export const getDataSourceData = (id: string) => request<Record<string, any>[]>(`/datasource/${id}/data`);

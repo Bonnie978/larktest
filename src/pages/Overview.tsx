@@ -5,8 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getKPI, getLineProduction, getWeeklyDefects, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
 import type { LineProductionRow, WeeklyDefectRow } from '@/mock/types';
+import DashboardGrid from '@/components/dashboard/DashboardGrid';
+import { useDashboard } from '@/hooks/useDashboard';
 
 export default function Overview() {
+  const {
+    editing,
+    toggleEditing,
+    cards,
+    layouts,
+    onLayoutChange,
+    addCard,
+    removeCard,
+    save,
+    resetToDefault,
+  } = useDashboard();
   const today = new Date().toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -148,6 +161,50 @@ export default function Overview() {
           <Table<WeeklyDefectRow> columns={defectColumns} data={weeklyDefectData ?? []} rowKey="date" />
         </CardContent>
       </Card>
+
+      {/* 可拖拽看板网格 */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">自定义看板</h2>
+          <div className="flex items-center gap-2">
+            <button
+              className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${editing ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'}`}
+              onClick={toggleEditing}
+            >
+              {editing ? '退出编辑' : '编辑模式'}
+            </button>
+            {editing && (
+              <>
+                <button
+                  className="px-3 py-1.5 text-sm rounded-md border bg-background hover:bg-muted transition-colors"
+                  onClick={addCard}
+                >
+                  + 新增图表
+                </button>
+                <button
+                  className="px-3 py-1.5 text-sm rounded-md border bg-background hover:bg-muted transition-colors"
+                  onClick={resetToDefault}
+                >
+                  恢复默认
+                </button>
+                <button
+                  className="px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={save}
+                >
+                  保存布局
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+        <DashboardGrid
+          cards={cards}
+          layouts={layouts}
+          editing={editing}
+          onLayoutChange={onLayoutChange}
+          onRemoveCard={removeCard}
+        />
+      </div>
     </div>
   );
 }
