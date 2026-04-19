@@ -10,6 +10,7 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  // @ts-ignore - test config for vitest
   test: {
     environment: 'jsdom',
     globals: true,
