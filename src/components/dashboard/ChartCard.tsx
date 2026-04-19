@@ -1,5 +1,5 @@
-import { useEffect, useRef, useMemo } from 'react';
-import * as echarts from 'echarts';
+import { useMemo } from 'react';
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { CardConfig, ChartType } from '@/types/dashboard';
 import { getDataSourceData } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
@@ -31,9 +31,6 @@ export default function ChartCard({
   onRemove,
   onChartTypeChange,
 }: ChartCardProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<echarts.ECharts | null>(null);
-
   const { data: rawData, loading } = useRequest(
     () => getDataSourceData(config.dataSourceId),
     [config.dataSourceId]
@@ -44,75 +41,97 @@ export default function ChartCard({
     return aggregateData(rawData, config.groupByField, config.valueFields, config.aggregation);
   }, [rawData, config.groupByField, config.valueFields, config.aggregation]);
 
-  useEffect(() => {
-    if (!chartRef.current || aggregatedData.length === 0) return;
-
-    if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current);
+  const renderChart = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+          加载中...
+        </div>
+      );
     }
 
-    const categories = aggregatedData.map(d => String(d[config.groupByField]));
-
-    let option: echarts.EChartsOption;
+    if (aggregatedData.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+          暂无数据
+        </div>
+      );
+    }
 
     if (config.chartType === 'pie') {
       const pieData = aggregatedData.map(d => ({
         name: String(d[config.groupByField]),
         value: Number(d[config.valueFields[0]] ?? 0),
       }));
-      option = {
-        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-        color: COLOR_PALETTE,
-        series: [{
-          type: 'pie',
-          radius: ['40%', '70%'],
-          data: pieData,
-          label: { formatter: '{b}\n{d}%', fontSize: 11 },
-        }],
-      };
-    } else {
-      const series = config.valueFields.map((field, i) => ({
-        name: field,
-        type: config.chartType as 'bar' | 'line',
-        data: aggregatedData.map(d => Number(d[field] ?? 0)),
-        ...(config.chartType === 'line' ? { smooth: true, symbolSize: 6 } : {}),
-        ...(config.chartType === 'bar' ? {
-          itemStyle: { borderRadius: [2, 2, 0, 0] },
-        } : {}),
-        color: COLOR_PALETTE[i % COLOR_PALETTE.length],
-      }));
 
-      option = {
-        tooltip: { trigger: 'axis' },
-        legend: { bottom: 0, textStyle: { fontSize: 11 } },
-        grid: { left: '3%', right: '4%', bottom: '14%', top: '8%', containLabel: true },
-        xAxis: {
-          type: 'category',
-          data: categories,
-          axisLabel: { fontSize: 11, rotate: categories.length > 6 ? 30 : 0 },
-        },
-        yAxis: { type: 'value', axisLabel: { fontSize: 11 } },
-        color: COLOR_PALETTE,
-        series,
-      };
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              innerRadius="40%"
+              outerRadius="70%"
+              dataKey="value"
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            >
+              {pieData.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={COLOR_PALETTE[index % COLOR_PALETTE.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+          </PieChart>
+        </ResponsiveContainer>
+      );
     }
 
-    chartInstance.current.setOption(option, true);
-  }, [aggregatedData, config]);
+    if (config.chartType === 'line') {
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={aggregatedData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey={config.groupByField} tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            {config.valueFields.map((field, index) => (
+              <Line
+                key={field}
+                type="monotone"
+                dataKey={field}
+                name={field}
+                stroke={COLOR_PALETTE[index % COLOR_PALETTE.length]}
+                strokeWidth={2}
+                dot={{ r: 3 }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    }
 
-  // Resize observer
-  useEffect(() => {
-    if (!chartRef.current) return;
-    const observer = new ResizeObserver(() => {
-      chartInstance.current?.resize();
-    });
-    observer.observe(chartRef.current);
-    return () => {
-      observer.disconnect();
-      chartInstance.current?.dispose();
-      chartInstance.current = null;
-    };
-  }, []);
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={aggregatedData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey={config.groupByField} tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 11 }} />
+          <Tooltip />
+          <Legend wrapperStyle={{ fontSize: 11 }} />
+          {config.valueFields.map((field, index) => (
+            <Bar
+              key={field}
+              dataKey={field}
+              name={field}
+              fill={COLOR_PALETTE[index % COLOR_PALETTE.length]}
+              radius={[4, 4, 0, 0]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  };
 
   return (
     <div className="bg-white rounded-lg border shadow-sm h-full flex flex-col">
@@ -158,13 +177,7 @@ export default function ChartCard({
 
       {/* Chart area */}
       <div className="flex-1 p-2 min-h-0">
-        {loading ? (
-          <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-            加载中...
-          </div>
-        ) : (
-          <div ref={chartRef} className="w-full h-full" />
-        )}
+        {renderChart()}
       </div>
     </div>
   );

@@ -1,5 +1,19 @@
-import { useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
+import { useMemo } from 'react';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 import type { ChartType } from '@/types/dashboard';
 import { aggregateData } from '@/utils/aggregation';
 import type { AggregationType } from '@/types/dashboard';
@@ -28,77 +42,97 @@ export default function ChartPreview({
   aggregation,
   title,
 }: ChartPreviewProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<echarts.ECharts | null>(null);
+  const data = useMemo(() => {
+    return aggregateData(rawData, groupByField, valueFields, aggregation);
+  }, [rawData, groupByField, valueFields, aggregation]);
 
-  useEffect(() => {
-    if (!chartRef.current) return;
-    if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current);
-    }
+  if (chartType === 'pie') {
+    const pieData = data.map(d => ({
+      name: String(d[groupByField]),
+      value: Number(d[valueFields[0]] ?? 0),
+    }));
 
-    const data = aggregateData(rawData, groupByField, valueFields, aggregation);
-    const categories = data.map(d => String(d[groupByField]));
+    return (
+      <div className="w-full h-full min-h-[300px] flex flex-col">
+        {title && (
+          <div className="text-center text-sm font-medium py-2">{title}</div>
+        )}
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              innerRadius="40%"
+              outerRadius="70%"
+              dataKey="value"
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            >
+              {pieData.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={COLOR_PALETTE[index % COLOR_PALETTE.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value: number) => value.toFixed(2)} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
 
-    let option: echarts.EChartsOption;
+  if (chartType === 'line') {
+    return (
+      <div className="w-full h-full min-h-[300px] flex flex-col">
+        {title && (
+          <div className="text-center text-sm font-medium py-2">{title}</div>
+        )}
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey={groupByField} angle={-15} textAnchor="end" height={60} />
+            <YAxis />
+            <Tooltip />
+            <Legend />
+            {valueFields.map((field, index) => (
+              <Line
+                key={field}
+                type="monotone"
+                dataKey={field}
+                name={fieldLabels[field] || field}
+                stroke={COLOR_PALETTE[index % COLOR_PALETTE.length]}
+                strokeWidth={2}
+                dot={{ r: 4 }}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  }
 
-    if (chartType === 'pie') {
-      const pieData = data.map(d => ({
-        name: String(d[groupByField]),
-        value: Number(d[valueFields[0]] ?? 0),
-      }));
-      option = {
-        title: title ? { text: title, left: 'center', textStyle: { fontSize: 14 } } : undefined,
-        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-        color: COLOR_PALETTE,
-        series: [{
-          type: 'pie',
-          radius: ['40%', '70%'],
-          data: pieData,
-          label: { formatter: '{b}\n{d}%' },
-        }],
-      };
-    } else {
-      const series = valueFields.map((field, i) => ({
-        name: fieldLabels[field] || field,
-        type: chartType as 'bar' | 'line',
-        data: data.map(d => Number(d[field] ?? 0)),
-        ...(chartType === 'line' ? { smooth: true, symbolSize: 6 } : {}),
-        ...(chartType === 'bar' ? {
-          itemStyle: { borderRadius: [2, 2, 0, 0] },
-        } : {}),
-        color: COLOR_PALETTE[i % COLOR_PALETTE.length],
-      }));
-      option = {
-        title: title ? { text: title, left: 'center', textStyle: { fontSize: 14 } } : undefined,
-        tooltip: { trigger: 'axis' },
-        legend: { bottom: 0 },
-        grid: { left: '3%', right: '4%', bottom: '12%', top: '15%', containLabel: true },
-        xAxis: { type: 'category', data: categories },
-        yAxis: { type: 'value' },
-        color: COLOR_PALETTE,
-        series,
-      };
-    }
-
-    chartInstance.current.setOption(option, true);
-
-    return () => {};
-  }, [rawData, groupByField, valueFields, chartType, aggregation, title, fieldLabels]);
-
-  useEffect(() => {
-    const handleResize = () => chartInstance.current?.resize();
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      chartInstance.current?.dispose();
-      chartInstance.current = null;
-    };
-  }, []);
-
+  // Bar chart
   return (
-    <div className="w-full h-full min-h-[300px]">
-      <div ref={chartRef} className="w-full h-full" />
+    <div className="w-full h-full min-h-[300px] flex flex-col">
+      {title && (
+        <div className="text-center text-sm font-medium py-2">{title}</div>
+      )}
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey={groupByField} angle={-15} textAnchor="end" height={60} />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          {valueFields.map((field, index) => (
+            <Bar
+              key={field}
+              dataKey={field}
+              name={fieldLabels[field] || field}
+              fill={COLOR_PALETTE[index % COLOR_PALETTE.length]}
+              radius={[4, 4, 0, 0]}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
