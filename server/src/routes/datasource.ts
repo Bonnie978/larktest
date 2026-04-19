@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import { MetadataManager } from '../datasource/MetadataManager.js';
-import { QueryEngine } from '../datasource/QueryEngine.js';
+import { DataSourceRegistry } from '../datasource/registry.js';
 
 const router = Router();
 
 // GET /api/datasource - 获取所有数据源元数据
 router.get('/', (_req, res) => {
-  const metadata = MetadataManager.getAllDataSources();
+  const metadata = DataSourceRegistry.getAllDataSources();
   res.json({ code: 0, data: metadata, message: 'success' });
 });
 
@@ -16,7 +15,7 @@ router.get('/:id/data', async (req, res) => {
   const { fields, ...filters } = req.query as Record<string, string>;
 
   try {
-    const data = await QueryEngine.query(id, {
+    const data = await DataSourceRegistry.getData(id, {
       fields: fields ? fields.split(',').map((f) => f.trim()) : undefined,
       filters: Object.keys(filters).length > 0 ? filters : undefined,
     });

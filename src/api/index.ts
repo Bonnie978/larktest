@@ -28,3 +28,8 @@ export const getQualityRecords = (params?: { lineName?: string; defectType?: str
 
 // 工单管理
 export const getOrders = () => request<WorkOrder[]>('/orders');
+
+// 数据源
+export const getDataSources = () => request<any[]>('/datasource');
+export const getDataSourceData = (id: string, params?: Record<string, string>) =>
+  request<any[]>(`/datasource/${id}/data`, params);
