@@ -1,11 +1,9 @@
-import { Responsive, WidthProvider } from 'react-grid-layout';
+import { ResponsiveGridLayout } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import type { DashboardCard } from '@/hooks/useDashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-const ResponsiveGridLayout = WidthProvider(Responsive);
 
 interface DashboardGridProps {
   cards: DashboardCard[];
