@@ -1,12 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
-import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
+import { ResponsiveGridLayout as RGLComponent, useContainerWidth } from 'react-grid-layout';
+const ResponsiveGridLayout = RGLComponent as any;
 import { Button } from '@/components/ui/button';
 import ChartCard from '@/components/dashboard/ChartCard';
 import AddChartDialog from '@/components/dashboard/AddChartDialog';
 import { loadCharts, saveCharts } from '@/utils/storage';
 import type { ChartConfig } from '@/types/dashboard';
-import type { Layout } from 'react-grid-layout';
-
 import 'react-grid-layout/css/styles.css';
 
 export default function Dashboard() {
@@ -14,23 +13,23 @@ export default function Dashboard() {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { width } = useContainerWidth(containerRef);
+  const { width } = useContainerWidth({ containerRef } as any);
 
   const isEdit = mode === 'edit';
 
   const handleLayoutChange = useCallback(
-    (newLayout: Layout[]) => {
+    (newLayout: any) => {
       setCharts(prev => {
         const updated = prev.map(chart => {
-          const layoutItem = newLayout.find(l => l.i === chart.id);
+          const layoutItem = (Array.isArray(newLayout) ? newLayout : Array.from(newLayout)).find((l: any) => l.i === chart.id);
           if (layoutItem) {
             return {
               ...chart,
               layout: {
-                x: layoutItem.x,
-                y: layoutItem.y,
-                w: layoutItem.w,
-                h: layoutItem.h,
+                x: (layoutItem as any).x,
+                y: (layoutItem as any).y,
+                w: (layoutItem as any).w,
+                h: (layoutItem as any).h,
               },
             };
           }
@@ -132,7 +131,7 @@ export default function Dashboard() {
             rowHeight={80}
             isDraggable={isEdit}
             isResizable={isEdit}
-            onLayoutChange={handleLayoutChange}
+            onLayoutChange={handleLayoutChange as any}
             draggableCancel=".no-drag"
             compactType="vertical"
             margin={[16, 16]}

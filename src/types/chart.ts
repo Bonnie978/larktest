@@ -1,6 +1,6 @@
 export type DataSourceType = 'production' | 'equipment' | 'quality' | 'order' | 'shift';
 
-export type AggregationType = 'sum' | 'avg' | 'count' | 'max' | 'min';
+export type AggregationType = 'sum' | 'avg' | 'count' | 'max' | 'min' | 'none';
 
 export type ChartType = 'bar' | 'line' | 'pie' | 'area';
 
