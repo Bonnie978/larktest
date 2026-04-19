@@ -1,6 +1,7 @@
 import KPICard from '@/components/KPICard';
 import Table, { type Column } from '@/components/Table';
 import Tag from '@/components/Tag';
+import DashboardEditor from '@/components/DashboardEditor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getKPI, getLineProduction, getWeeklyDefects, getLines, getEquipment, getOrders, getQualityRecords } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
@@ -148,6 +149,8 @@ export default function Overview() {
           <Table<WeeklyDefectRow> columns={defectColumns} data={weeklyDefectData ?? []} rowKey="date" />
         </CardContent>
       </Card>
+
+      <DashboardEditor />
     </div>
   );
 }
