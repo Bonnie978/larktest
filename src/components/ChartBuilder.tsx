@@ -129,7 +129,8 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
     }
   }, [initialConfig, mode, open]);
 
-  const handleDataSourceChange = (value: string) => {
+  const handleDataSourceChange = (value: string | null) => {
+    if (!value) return;
     setDataSource(value as DataSourceType);
     setDimension("");
     setMetric("");
@@ -189,7 +190,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">维度字段</label>
-          <ShadcnSelect value={dimension} onValueChange={setDimension}>
+          <ShadcnSelect value={dimension} onValueChange={(v) => v && setDimension(v)}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="请选择维度字段" />
             </SelectTrigger>
@@ -205,7 +206,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">指标字段</label>
-          <ShadcnSelect value={metric} onValueChange={setMetric}>
+          <ShadcnSelect value={metric} onValueChange={(v) => v && setMetric(v)}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="请选择指标字段" />
             </SelectTrigger>
@@ -221,7 +222,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">聚合方式</label>
-          <ShadcnSelect value={aggregation} onValueChange={(v) => setAggregation(v as AggregationType)}>
+          <ShadcnSelect value={aggregation} onValueChange={(v) => v && setAggregation(v as AggregationType)}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -237,7 +238,7 @@ const ChartBuilder: React.FC<ChartBuilderProps> = ({
 
         <div className="space-y-2">
           <label className="text-sm font-medium">图表类型</label>
-          <ShadcnSelect value={chartType} onValueChange={(v) => setChartType(v as ChartType)}>
+          <ShadcnSelect value={chartType} onValueChange={(v) => v && setChartType(v as ChartType)}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
