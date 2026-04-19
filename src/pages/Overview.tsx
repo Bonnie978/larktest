@@ -16,6 +16,7 @@ export default function Overview() {
     layouts,
     onLayoutChange,
     addCard,
+    updateChartType,
     removeCard,
     save,
     resetToDefault,
@@ -33,6 +34,15 @@ export default function Overview() {
   const { data: equipment } = useRequest(getEquipment);
   const { data: orders } = useRequest(getOrders);
   const { data: qualityRecords } = useRequest(getQualityRecords);
+
+  // Build dataMap for dashboard charts
+  const dataMap = {
+    'line-production': lineProductionData ?? [],
+    'weekly-defects': weeklyDefectData ?? [],
+    'equipment': equipment ?? [],
+    'quality': qualityRecords ?? [],
+    'orders': orders ?? [],
+  };
 
   const runningLines = lines?.filter(l => l.status === '运行中').length ?? 0;
   const totalLines = lines?.length ?? 0;
@@ -177,7 +187,15 @@ export default function Overview() {
               <>
                 <button
                   className="px-3 py-1.5 text-sm rounded-md border bg-background hover:bg-muted transition-colors"
-                  onClick={addCard}
+                  onClick={() => addCard({
+                    id: `new-${Date.now()}`,
+                    title: '新图表',
+                    dataSourceId: 'line-production',
+                    chartType: 'bar',
+                    groupByField: 'lineName',
+                    valueFields: ['planned', 'actual'],
+                    aggregation: 'none'
+                  })}
                 >
                   + 新增图表
                 </button>
@@ -203,6 +221,8 @@ export default function Overview() {
           editing={editing}
           onLayoutChange={onLayoutChange}
           onRemoveCard={removeCard}
+          onChartTypeChange={updateChartType}
+          dataMap={dataMap}
         />
       </div>
     </div>

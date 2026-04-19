@@ -6,9 +6,9 @@ import {
   clearDashboard,
   getDefaultDashboard,
 } from '@/utils/storage';
-import type { DashboardCard } from '@/utils/storage';
+import type { DashboardCard, CardConfig } from '@/utils/storage';
 
-export type { DashboardCard } from '@/utils/storage';
+export type { DashboardCard, CardConfig } from '@/utils/storage';
 
 let nextId = 100;
 
@@ -27,12 +27,22 @@ export function useDashboard() {
     setLayouts(newLayout);
   }, []);
 
-  const addCard = useCallback(() => {
+  const addCard = useCallback((config: CardConfig) => {
     const id = `card-${++nextId}`;
-    const newCard: DashboardCard = { i: id, title: `图表 ${nextId}`, type: 'placeholder' };
+    const newCard: DashboardCard = { i: id, config };
     const newLayout: Layout = { i: id, x: 0, y: Infinity, w: 6, h: 4 };
     setCards(prev => [...prev, newCard]);
     setLayouts(prev => [...prev, newLayout]);
+  }, []);
+
+  const updateCard = useCallback((cardId: string, config: CardConfig) => {
+    setCards(prev => prev.map(c => c.i === cardId ? { ...c, config } : c));
+  }, []);
+
+  const updateChartType = useCallback((cardId: string, chartType: 'bar' | 'line' | 'pie') => {
+    setCards(prev => prev.map(c => 
+      c.i === cardId ? { ...c, config: { ...c.config, chartType } } : c
+    ));
   }, []);
 
   const removeCard = useCallback((cardId: string) => {
@@ -41,7 +51,7 @@ export function useDashboard() {
   }, []);
 
   const save = useCallback(() => {
-    saveDashboard({ cards, layouts });
+    saveDashboard({ version: 2, cards, layouts });
     setEditing(false);
   }, [cards, layouts]);
 
@@ -59,6 +69,8 @@ export function useDashboard() {
     layouts,
     onLayoutChange,
     addCard,
+    updateCard,
+    updateChartType,
     removeCard,
     save,
     resetToDefault,

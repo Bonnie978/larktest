@@ -2,8 +2,8 @@ import { ResponsiveGridLayout } from 'react-grid-layout';
 import type { Layout } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
-import type { DashboardCard } from '@/hooks/useDashboard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { DashboardCard } from '@/utils/storage';
+import ChartCard from './ChartCard';
 
 interface DashboardGridProps {
   cards: DashboardCard[];
@@ -11,6 +11,9 @@ interface DashboardGridProps {
   editing: boolean;
   onLayoutChange: (layout: Layout[]) => void;
   onRemoveCard?: (id: string) => void;
+  onEditCard?: (id: string) => void;
+  onChartTypeChange?: (id: string, type: 'bar' | 'line' | 'pie') => void;
+  dataMap: Record<string, any[]>;
 }
 
 export default function DashboardGrid({
@@ -19,6 +22,9 @@ export default function DashboardGrid({
   editing,
   onLayoutChange,
   onRemoveCard,
+  onEditCard,
+  onChartTypeChange,
+  dataMap,
 }: DashboardGridProps) {
   return (
     <ResponsiveGridLayout
@@ -34,24 +40,14 @@ export default function DashboardGrid({
     >
       {cards.map((card) => (
         <div key={card.i}>
-          <Card className="h-full shadow-sm overflow-hidden">
-            <CardHeader className="pb-0 pt-3 px-4 flex flex-row items-center justify-between">
-              <CardTitle className={`text-[15px] font-medium ${editing ? 'drag-handle cursor-move' : ''}`}>
-                {card.title}
-              </CardTitle>
-              {editing && onRemoveCard && (
-                <button
-                  className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
-                  onClick={() => onRemoveCard(card.i)}
-                >
-                  ✕
-                </button>
-              )}
-            </CardHeader>
-            <CardContent className="flex items-center justify-center h-[calc(100%-40px)] text-sm text-muted-foreground">
-              {card.title} 图表区域
-            </CardContent>
-          </Card>
+          <ChartCard
+            config={card.config}
+            data={dataMap[card.config.dataSourceId] || []}
+            isEditing={editing}
+            onEdit={onEditCard ? () => onEditCard(card.i) : undefined}
+            onDelete={onRemoveCard ? () => onRemoveCard(card.i) : undefined}
+            onChartTypeChange={onChartTypeChange ? (type) => onChartTypeChange(card.i, type) : undefined}
+          />
         </div>
       ))}
     </ResponsiveGridLayout>
