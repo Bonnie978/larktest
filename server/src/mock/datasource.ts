@@ -2,6 +2,7 @@ import type { DataSourceMeta } from '../types/datasource.js';
 import { lineProductionData, weeklyDefectData } from './production.js';
 import { equipmentList } from './equipment.js';
 import { qualityRecords } from './quality.js';
+import { workOrders } from './orders.js';
 
 export const dataSources: DataSourceMeta[] = [
   {
@@ -56,6 +57,19 @@ export const dataSources: DataSourceMeta[] = [
       { name: 'defectCount', type: 'number', label: '缺陷数量' },
     ],
   },
+  {
+    id: 'work-orders',
+    name: '工单管理',
+    description: '生产工单与交付状态',
+    fields: [
+      { name: 'id', type: 'string', label: '工单号' },
+      { name: 'productModel', type: 'string', label: '产品型号' },
+      { name: 'customer', type: 'string', label: '客户' },
+      { name: 'deliveryStatus', type: 'string', label: '交付状态' },
+      { name: 'plannedQty', type: 'number', label: '计划数量' },
+      { name: 'completedQty', type: 'number', label: '完成数量' },
+    ],
+  },
 ];
 
 export const dataSourceDataMap: Record<string, Record<string, any>[]> = {
@@ -63,4 +77,5 @@ export const dataSourceDataMap: Record<string, Record<string, any>[]> = {
   'weekly-defects': weeklyDefectData,
   'equipment': equipmentList,
   'quality-records': qualityRecords,
+  'work-orders': workOrders,
 };
