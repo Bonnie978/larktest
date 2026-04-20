@@ -1,93 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
-interface CardConfig {
-  id: string;
-  title: string;
-  dataSourceId: string;
-  chartType: 'bar' | 'line' | 'pie';
-  groupByField: string;
-  valueFields: string[];
-  aggregation: 'sum' | 'avg' | 'count' | 'max' | 'none';
-}
-
-interface GridLayoutItem {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-interface DashboardCard {
-  config: CardConfig;
-  grid: GridLayoutItem;
-}
-
-interface DashboardConfig {
-  version: number;
-  cards: DashboardCard[];
-}
-
-const getDefaultCards = (): DashboardCard[] => [
-  {
-    config: {
-      id: 'default-1',
-      title: '产线产量完成情况',
-      dataSourceId: 'line-production',
-      chartType: 'bar',
-      groupByField: 'lineName',
-      valueFields: ['planned', 'actual'],
-      aggregation: 'none',
-    },
-    grid: { x: 0, y: 0, w: 6, h: 4 },
-  },
-  {
-    config: {
-      id: 'default-2',
-      title: '近7天不良率趋势',
-      dataSourceId: 'weekly-defects',
-      chartType: 'line',
-      groupByField: 'date',
-      valueFields: ['defectRate'],
-      aggregation: 'none',
-    },
-    grid: { x: 6, y: 0, w: 6, h: 4 },
-  },
-  {
-    config: {
-      id: 'default-3',
-      title: '不良类型分布',
-      dataSourceId: 'quality',
-      chartType: 'pie',
-      groupByField: 'defectType',
-      valueFields: ['defectCount'],
-      aggregation: 'sum',
-    },
-    grid: { x: 0, y: 4, w: 6, h: 4 },
-  },
-];
-
-const STORAGE_KEY = 'dashboard-v2';
-
-const loadDashboard = (): DashboardCard[] => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return getDefaultCards();
-    const config: DashboardConfig = JSON.parse(saved);
-    if (config.version !== 2 || !Array.isArray(config.cards)) {
-      return getDefaultCards();
-    }
-    return config.cards;
-  } catch {
-    return getDefaultCards();
-  }
-};
-
-const saveDashboard = (cards: DashboardCard[]) => {
-  const config: DashboardConfig = { version: 2, cards };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-};
+import {
+  loadDashboard,
+  saveDashboard,
+  type DashboardCard,
+} from '@/utils/storage';
 
 export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -128,7 +46,11 @@ export default function DashboardEditor() {
   };
 
   const handleResetDefault = () => {
-    setTempCards(getDefaultCards());
+    const defaults = loadDashboard();
+    // Clear storage to get actual defaults
+    try { localStorage.removeItem('dashboard-v2'); } catch {}
+    const freshDefaults = loadDashboard();
+    setTempCards(freshDefaults);
   };
 
   const handleAddCard = () => {
