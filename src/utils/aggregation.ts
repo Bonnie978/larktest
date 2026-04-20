@@ -62,6 +62,11 @@ export function aggregateData(
       for (const field of valueFields) {
         aggregated[field] = Math.max(...records.map(r => Number(r[field]) || 0));
       }
+    } else if (aggregation === 'min') {
+      // 最小值
+      for (const field of valueFields) {
+        aggregated[field] = Math.min(...records.map(r => Number(r[field]) || 0));
+      }
     }
 
     result.push(aggregated);

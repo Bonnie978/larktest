@@ -51,8 +51,10 @@ export class DataAggregator {
         return Math.max(...numbers);
       case 'min':
         return Math.min(...numbers);
+      case 'none':
+        return numbers[0] ?? 0;
       default:
-        return 0;
+        return numbers[0] ?? 0;
     }
   }
 }

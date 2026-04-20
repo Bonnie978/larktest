@@ -2,10 +2,12 @@ import { useState, useCallback, useRef } from 'react';
 import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
 import { Button } from '@/components/ui/button';
 import ChartCard from '@/components/dashboard/ChartCard';
-import AddChartDialog from '@/components/dashboard/AddChartDialog';
+import ChartBuilder from '@/components/dashboard/ChartBuilder';
 import { loadCharts, saveCharts } from '@/utils/storage';
-import type { ChartConfig } from '@/types/dashboard';
+import type { ChartConfig, CardConfig } from '@/types/dashboard';
 import type { Layout } from 'react-grid-layout';
+import { useRequest } from '@/hooks/useRequest';
+import { getDataSources } from '@/api';
 
 import 'react-grid-layout/css/styles.css';
 
@@ -150,12 +152,51 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Add Chart Dialog */}
-      <AddChartDialog
+      {/* Chart Builder Dialog */}
+      <ChartBuilderWrapper
         open={showAddDialog}
         onClose={() => setShowAddDialog(false)}
         onAdd={handleAddChart}
       />
     </div>
+  );
+}
+
+// Wrapper to bridge CardConfig to ChartConfig
+function ChartBuilderWrapper({
+  open,
+  onClose,
+  onAdd,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onAdd: (config: ChartConfig) => void;
+}) {
+  const { data: dataSources } = useRequest(getDataSources);
+
+  const handleConfirm = (cardConfig: CardConfig) => {
+    const chartConfig: ChartConfig = {
+      id: cardConfig.id,
+      title: cardConfig.title,
+      dataSource: cardConfig.dataSourceId as any,
+      dimension: cardConfig.groupByField,
+      metrics: cardConfig.valueFields,
+      aggregation: cardConfig.aggregation,
+      chartType: cardConfig.chartType,
+      layout: { x: 0, y: Infinity, w: 4, h: 3 },
+    };
+    onAdd(chartConfig);
+    onClose();
+  };
+
+  if (!dataSources || dataSources.length === 0) return null;
+
+  return (
+    <ChartBuilder
+      open={open}
+      dataSources={dataSources}
+      onConfirm={handleConfirm}
+      onCancel={onClose}
+    />
   );
 }
