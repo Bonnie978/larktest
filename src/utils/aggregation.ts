@@ -36,7 +36,7 @@ export function aggregateData(
       [groupByField]: groupKey,
     };
 
-    if (aggregation === 'none') {
+    if ((aggregation as string) === 'none') {
       // 不聚合，仅投影字段（取第一条记录）
       for (const field of valueFields) {
         aggregated[field] = records[0][field];

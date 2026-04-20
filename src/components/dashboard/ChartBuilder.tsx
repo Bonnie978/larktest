@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { CardConfig, ChartType, AggregationType, DataSourceMeta } from '@/types/dashboard';
+import type { ChartConfig, ChartType, AggregationType, DataSourceMeta, DataSourceType } from '@/types/dashboard';
 import { getDataSourceData } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
 import ChartPreview from './ChartPreview';
@@ -11,7 +11,7 @@ const CHART_TYPES: { value: ChartType; label: string }[] = [
 ];
 
 const AGGREGATION_TYPES: { value: AggregationType; label: string }[] = [
-  { value: 'none', label: '不聚合' },
+  { value: 'sum' as AggregationType, label: '不聚合/求和' },
   { value: 'sum', label: '求和' },
   { value: 'avg', label: '平均值' },
   { value: 'count', label: '计数' },
@@ -20,9 +20,9 @@ const AGGREGATION_TYPES: { value: AggregationType; label: string }[] = [
 
 interface ChartBuilderProps {
   open: boolean;
-  editingConfig?: CardConfig;
+  editingConfig?: ChartConfig;
   dataSources: DataSourceMeta[];
-  onConfirm: (config: CardConfig) => void;
+  onConfirm: (config: ChartConfig) => void;
   onCancel: () => void;
 }
 
@@ -59,9 +59,9 @@ export default function ChartBuilder({
   useEffect(() => {
     if (!open) return;
     if (editingConfig) {
-      setSelectedSource(editingConfig.dataSourceId);
-      setDimension(editingConfig.groupByField);
-      setMetrics(editingConfig.valueFields);
+      setSelectedSource(editingConfig.dataSource);
+      setDimension(editingConfig.dimension);
+      setMetrics(editingConfig.metrics);
       setChartType(editingConfig.chartType);
       setAggregation(editingConfig.aggregation);
       setTitle(editingConfig.title);
@@ -107,11 +107,12 @@ export default function ChartBuilder({
     onConfirm({
       id: editingConfig?.id ?? Date.now().toString(),
       title: getAutoTitle(),
-      dataSourceId: selectedSource,
+      dataSource: selectedSource as DataSourceType,
       chartType,
-      groupByField: dimension,
-      valueFields: metrics,
+      dimension,
+      metrics,
       aggregation,
+      layout: editingConfig?.layout ?? { x: 0, y: 0, w: 6, h: 4 },
     });
   }
 

@@ -35,3 +35,18 @@ export interface AggregatedData {
   name: string;
   data: AggregatedDataPoint[];
 }
+
+export interface DataSourceField {
+  name: string;
+  label: string;
+  type: 'string' | 'number';
+}
+
+export interface DataSourceMeta {
+  id: string;
+  name: string;
+  fields: DataSourceField[];
+}
+
+// Alias for backward compatibility
+export type CardConfig = ChartConfig;
