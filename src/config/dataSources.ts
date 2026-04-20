@@ -19,8 +19,20 @@ export const dataSourceMeta: Record<DataSourceType, DataSourceMeta> = {
       { field: 'completionRate', label: '完成率' },
     ],
   },
-  'equipment-oee': {
-    label: '设备OEE',
+  'weekly-defects': {
+    label: '每日质量',
+    dimensions: [
+      { field: 'date', label: '日期' },
+      { field: 'mainDefectType', label: '主要缺陷类型' },
+    ],
+    metrics: [
+      { field: 'inspectedQty', label: '检验数量' },
+      { field: 'defectQty', label: '不良数量' },
+      { field: 'defectRate', label: '不良率' },
+    ],
+  },
+  'equipment': {
+    label: '设备状态',
     dimensions: [
       { field: 'name', label: '设备名称' },
       { field: 'lineName', label: '所属产线' },
@@ -32,18 +44,18 @@ export const dataSourceMeta: Record<DataSourceType, DataSourceMeta> = {
       { field: 'quality', label: '质量率' },
     ],
   },
-  'quality-defects': {
-    label: '质量不良',
+  'quality-records': {
+    label: '质量记录',
     dimensions: [
       { field: 'lineName', label: '产线名称' },
-      { field: 'defectType', label: '不良类型' },
+      { field: 'defectType', label: '缺陷类型' },
     ],
     metrics: [
-      { field: 'defectCount', label: '不良数量' },
+      { field: 'defectCount', label: '缺陷数量' },
     ],
   },
-  'order-delivery': {
-    label: '工单交付',
+  'work-orders': {
+    label: '工单管理',
     dimensions: [
       { field: 'productModel', label: '产品型号' },
       { field: 'deliveryStatus', label: '交付状态' },
@@ -51,17 +63,6 @@ export const dataSourceMeta: Record<DataSourceType, DataSourceMeta> = {
     metrics: [
       { field: 'plannedQty', label: '计划数量' },
       { field: 'completedQty', label: '完成数量' },
-    ],
-  },
-  'shift-output': {
-    label: '班次产量',
-    dimensions: [
-      { field: 'lineName', label: '产线名称' },
-      { field: 'shift', label: '班次' },
-    ],
-    metrics: [
-      { field: 'actual', label: '实际产量' },
-      { field: 'planned', label: '计划产量' },
     ],
   },
 };

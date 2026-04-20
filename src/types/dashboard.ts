@@ -1,9 +1,9 @@
 export type DataSourceType =
   | 'line-production'
-  | 'equipment-oee'
-  | 'quality-defects'
-  | 'order-delivery'
-  | 'shift-output';
+  | 'weekly-defects'
+  | 'equipment'
+  | 'quality-records'
+  | 'work-orders';
 
 export type AggregationType = 'sum' | 'avg' | 'count' | 'max' | 'min';
 export type ChartType = 'bar' | 'line' | 'pie' | 'area';
