@@ -1,16 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
-interface CardConfig {
-  id: string;
-  title: string;
-  dataSourceId: string;
-  chartType: 'bar' | 'line' | 'pie';
-  groupByField: string;
-  valueFields: string[];
-  aggregation: 'sum' | 'avg' | 'count' | 'max' | 'none';
-}
+import ChartBuilder from '@/components/dashboard/ChartBuilder';
+import ChartPreview from '@/components/dashboard/ChartPreview';
+import type { CardConfig, DataSourceMeta, AggregationType } from '@/types/dashboard';
+import { getDataSources, getDataSourceData } from '@/api';
+import { useRequest } from '@/hooks/useRequest';
 
 interface GridLayoutItem {
   x: number;
@@ -58,7 +53,7 @@ const getDefaultCards = (): DashboardCard[] => [
     config: {
       id: 'default-3',
       title: '不良类型分布',
-      dataSourceId: 'quality',
+      dataSourceId: 'quality-records',
       chartType: 'pie',
       groupByField: 'defectType',
       valueFields: ['defectCount'],
@@ -89,12 +84,50 @@ const saveDashboard = (cards: DashboardCard[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 };
 
+/** Small wrapper that fetches data for a single card and renders ChartPreview */
+function CardChartRenderer({ config, dataSources }: { config: CardConfig; dataSources: DataSourceMeta[] }) {
+  const { data: rawData } = useRequest(
+    () => config.dataSourceId ? getDataSourceData(config.dataSourceId) : Promise.resolve([]),
+    [config.dataSourceId],
+  );
+
+  const fieldLabels = useMemo(() => {
+    const ds = dataSources.find(d => d.id === config.dataSourceId);
+    const map: Record<string, string> = {};
+    ds?.fields.forEach(f => { map[f.name] = f.label; });
+    return map;
+  }, [dataSources, config.dataSourceId]);
+
+  if (!rawData) {
+    return <span className="text-sm text-muted-foreground">加载中…</span>;
+  }
+
+  return (
+    <ChartPreview
+      rawData={rawData}
+      groupByField={config.groupByField}
+      valueFields={config.valueFields}
+      fieldLabels={fieldLabels}
+      chartType={config.chartType}
+      aggregation={config.aggregation as AggregationType}
+    />
+  );
+}
+
 export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [cards, setCards] = useState<DashboardCard[]>([]);
   const [tempCards, setTempCards] = useState<DashboardCard[]>([]);
 
-  // Dynamically import react-grid-layout to avoid TS module issues
+  // ChartBuilder state
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
+
+  // Fetch data sources from API
+  const { data: dataSources } = useRequest(() => getDataSources(), []);
+  const dsList: DataSourceMeta[] = dataSources ?? [];
+
+  // Dynamically import react-grid-layout
   const [GridLayout, setGridLayout] = useState<any>(null);
 
   useEffect(() => {
@@ -131,34 +164,56 @@ export default function DashboardEditor() {
     setTempCards(getDefaultCards());
   };
 
-  const handleAddCard = () => {
-    const newCard: DashboardCard = {
-      config: {
-        id: Date.now().toString(),
-        title: '新建图表',
-        dataSourceId: 'line-production',
-        chartType: 'bar',
-        groupByField: 'lineName',
-        valueFields: ['planned'],
-        aggregation: 'none',
-      },
-      grid: { x: 0, y: 0, w: 6, h: 4 },
-    };
-    const shifted = tempCards.map((c) => ({
-      ...c,
-      grid: { ...c.grid, y: c.grid.y + 4 },
-    }));
-    setTempCards([newCard, ...shifted]);
+  // Open ChartBuilder for new chart
+  const handleOpenBuilder = () => {
+    setEditingCardId(null);
+    setBuilderOpen(true);
+  };
+
+  // Open ChartBuilder for editing existing chart
+  const handleEditCard = (id: string) => {
+    setEditingCardId(id);
+    setBuilderOpen(true);
+  };
+
+  // ChartBuilder confirm callback
+  const handleBuilderConfirm = (config: CardConfig) => {
+    if (editingCardId) {
+      // Update existing card
+      setTempCards(prev =>
+        prev.map(c =>
+          c.config.id === editingCardId ? { ...c, config } : c,
+        ),
+      );
+    } else {
+      // Add new card at top, shift others down
+      const newCard: DashboardCard = {
+        config,
+        grid: { x: 0, y: 0, w: 6, h: 4 },
+      };
+      const shifted = tempCards.map(c => ({
+        ...c,
+        grid: { ...c.grid, y: c.grid.y + 4 },
+      }));
+      setTempCards([newCard, ...shifted]);
+    }
+    setBuilderOpen(false);
+    setEditingCardId(null);
+  };
+
+  const handleBuilderCancel = () => {
+    setBuilderOpen(false);
+    setEditingCardId(null);
   };
 
   const handleDeleteCard = (id: string) => {
-    setTempCards(tempCards.filter((c) => c.config.id !== id));
+    setTempCards(tempCards.filter(c => c.config.id !== id));
   };
 
   const handleLayoutChange = useCallback((layout: any) => {
     const arr = Array.isArray(layout) ? layout : [];
-    setTempCards((prev) =>
-      prev.map((card) => {
+    setTempCards(prev =>
+      prev.map(card => {
         const g = arr.find((l: any) => l.i === card.config.id);
         return g
           ? { ...card, grid: { x: g.x, y: g.y, w: g.w, h: g.h } }
@@ -168,6 +223,10 @@ export default function DashboardEditor() {
   }, []);
 
   const displayCards = isEditMode ? tempCards : cards;
+
+  const editingConfig = editingCardId
+    ? tempCards.find(c => c.config.id === editingCardId)?.config
+    : undefined;
 
   const renderToolbar = () => {
     if (!isEditMode) {
@@ -179,7 +238,7 @@ export default function DashboardEditor() {
     }
     return (
       <div className="flex gap-2">
-        <Button onClick={handleAddCard} variant="outline" size="sm">
+        <Button onClick={handleOpenBuilder} variant="outline" size="sm">
           新建图表
         </Button>
         <Button onClick={handleResetDefault} variant="outline" size="sm">
@@ -196,16 +255,16 @@ export default function DashboardEditor() {
   };
 
   const renderCard = (card: DashboardCard) => (
-    <Card className="shadow-sm h-full overflow-hidden">
-      <CardHeader className="pb-2 pt-3 px-4 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm font-medium">
+    <Card className="shadow-sm h-full overflow-hidden flex flex-col">
+      <CardHeader className="pb-2 pt-3 px-4 flex flex-row items-center justify-between shrink-0">
+        <CardTitle className="text-sm font-medium truncate">
           {card.config.title}
         </CardTitle>
         {isEditMode && (
           <div className="flex gap-1">
             <button
               className="text-xs text-muted-foreground hover:text-foreground px-1"
-              onClick={() => {}}
+              onClick={() => handleEditCard(card.config.id)}
             >
               ✎
             </button>
@@ -218,10 +277,8 @@ export default function DashboardEditor() {
           </div>
         )}
       </CardHeader>
-      <CardContent className="px-4 pb-3 flex-1 flex items-center justify-center">
-        <span className="text-sm text-muted-foreground">
-          图表占位符 - {card.config.chartType}
-        </span>
+      <CardContent className="px-4 pb-3 flex-1 min-h-0">
+        <CardChartRenderer config={card.config} dataSources={dsList} />
       </CardContent>
     </Card>
   );
@@ -235,12 +292,19 @@ export default function DashboardEditor() {
           {renderToolbar()}
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {displayCards.map((card) => (
+          {displayCards.map(card => (
             <div key={card.config.id} style={{ minHeight: 320 }}>
               {renderCard(card)}
             </div>
           ))}
         </div>
+        <ChartBuilder
+          open={builderOpen}
+          editingConfig={editingConfig}
+          dataSources={dsList}
+          onConfirm={handleBuilderConfirm}
+          onCancel={handleBuilderCancel}
+        />
       </div>
     );
   }
@@ -254,7 +318,7 @@ export default function DashboardEditor() {
       <div style={{ width: '100%' }}>
         <GridLayout
           className="layout"
-          layout={displayCards.map((c) => ({
+          layout={displayCards.map(c => ({
             i: c.config.id,
             ...c.grid,
           }))}
@@ -265,11 +329,18 @@ export default function DashboardEditor() {
           isResizable={isEditMode}
           onLayoutChange={handleLayoutChange}
         >
-          {displayCards.map((card) => (
+          {displayCards.map(card => (
             <div key={card.config.id}>{renderCard(card)}</div>
           ))}
         </GridLayout>
       </div>
+      <ChartBuilder
+        open={builderOpen}
+        editingConfig={editingConfig}
+        dataSources={dsList}
+        onConfirm={handleBuilderConfirm}
+        onCancel={handleBuilderCancel}
+      />
     </div>
   );
 }
