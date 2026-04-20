@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [charts, setCharts] = useState<ChartConfig[]>(() => loadCharts());
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingChart, setEditingChart] = useState<ChartConfig | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { width } = useContainerWidth(containerRef);
 
@@ -54,6 +55,14 @@ export default function Dashboard() {
   const handleRemoveChart = useCallback((id: string) => {
     setCharts(prev => {
       const updated = prev.filter(c => c.id !== id);
+      saveCharts(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleEditChart = useCallback((config: ChartConfig) => {
+    setCharts(prev => {
+      const updated = prev.map(c => c.id === config.id ? config : c);
       saveCharts(updated);
       return updated;
     });
@@ -143,6 +152,10 @@ export default function Dashboard() {
                   config={chart}
                   editable={isEdit}
                   onRemove={() => handleRemoveChart(chart.id)}
+                  onEdit={() => {
+                    setEditingChart(chart);
+                    setShowAddDialog(true);
+                  }}
                 />
               </div>
             ))}
@@ -153,8 +166,19 @@ export default function Dashboard() {
       {/* Add Chart Dialog */}
       <AddChartDialog
         open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
-        onAdd={handleAddChart}
+        onClose={() => {
+          setShowAddDialog(false);
+          setEditingChart(null);
+        }}
+        onAdd={(config) => {
+          if (editingChart) {
+            handleEditChart(config);
+          } else {
+            handleAddChart(config);
+          }
+          setEditingChart(null);
+        }}
+        editingConfig={editingChart ?? undefined}
       />
     </div>
   );

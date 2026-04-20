@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { dataSourceMeta } from '@/config/dataSources';
@@ -8,6 +8,7 @@ interface AddChartDialogProps {
   open: boolean;
   onClose: () => void;
   onAdd: (config: ChartConfig) => void;
+  editingConfig?: ChartConfig;
 }
 
 const chartTypes: { value: ChartType; label: string }[] = [
@@ -25,7 +26,7 @@ const aggregationTypes: { value: AggregationType; label: string }[] = [
   { value: 'min', label: '最小值' },
 ];
 
-export default function AddChartDialog({ open, onClose, onAdd }: AddChartDialogProps) {
+export default function AddChartDialog({ open, onClose, onAdd, editingConfig }: AddChartDialogProps) {
   const dataSourceKeys = Object.keys(dataSourceMeta) as DataSourceType[];
   const [dataSource, setDataSource] = useState<DataSourceType>(dataSourceKeys[0]);
   const [chartType, setChartType] = useState<ChartType>('bar');
@@ -36,6 +37,27 @@ export default function AddChartDialog({ open, onClose, onAdd }: AddChartDialogP
   const [dimension, setDimension] = useState(meta.dimensions[0]?.field ?? '');
   const [selectedMetric, setSelectedMetric] = useState(meta.metrics[0]?.field ?? '');
 
+  // Pre-fill form when editingConfig changes or dialog opens
+  useEffect(() => {
+    if (!open) return;
+    if (editingConfig) {
+      setDataSource(editingConfig.dataSource);
+      setChartType(editingConfig.chartType);
+      setAggregation(editingConfig.aggregation);
+      setTitle(editingConfig.title);
+      setDimension(editingConfig.dimension);
+      setSelectedMetric(editingConfig.metrics[0] ?? '');
+    } else {
+      setDataSource(dataSourceKeys[0]);
+      const m = dataSourceMeta[dataSourceKeys[0]];
+      setDimension(m.dimensions[0]?.field ?? '');
+      setSelectedMetric(m.metrics[0]?.field ?? '');
+      setChartType('bar');
+      setAggregation('sum');
+      setTitle('');
+    }
+  }, [open, editingConfig]);
+
   const handleDataSourceChange = (ds: DataSourceType) => {
     setDataSource(ds);
     const m = dataSourceMeta[ds];
@@ -45,14 +67,14 @@ export default function AddChartDialog({ open, onClose, onAdd }: AddChartDialogP
 
   const handleSubmit = () => {
     const config: ChartConfig = {
-      id: `chart-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: editingConfig?.id ?? `chart-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       title: title || `${meta.label} - ${chartTypes.find(c => c.value === chartType)?.label ?? chartType}`,
       dataSource,
       dimension,
       metrics: [selectedMetric],
       aggregation,
       chartType,
-      layout: { x: 0, y: Infinity, w: 4, h: 3 },
+      layout: editingConfig?.layout ?? { x: 0, y: Infinity, w: 4, h: 3 },
     };
     onAdd(config);
     // Reset
@@ -66,7 +88,7 @@ export default function AddChartDialog({ open, onClose, onAdd }: AddChartDialogP
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <Card className="w-[480px] max-h-[90vh] overflow-auto shadow-xl">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">添加图表</CardTitle>
+          <CardTitle className="text-base">{editingConfig ? '编辑图表' : '添加图表'}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Title */}
@@ -187,7 +209,7 @@ export default function AddChartDialog({ open, onClose, onAdd }: AddChartDialogP
               取消
             </Button>
             <Button size="sm" onClick={handleSubmit}>
-              添加
+              {editingConfig ? '确认' : '添加'}
             </Button>
           </div>
         </CardContent>
