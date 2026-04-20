@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useRequest } from './useRequest';
-import { getLineProduction, getEquipment, getQualityRecords, getOrders } from '@/api';
+import { getLineProduction, getEquipment, getQualityRecords, getOrders, getWeeklyDefects } from '@/api';
 import type { DataSourceType } from '@/types/dashboard';
 
 export function useDataSource(dataSource: DataSourceType) {
@@ -8,6 +8,7 @@ export function useDataSource(dataSource: DataSourceType) {
   const { data: equipment } = useRequest(getEquipment);
   const { data: qualityRecords } = useRequest(getQualityRecords);
   const { data: orders } = useRequest(getOrders);
+  const { data: weeklyDefects } = useRequest(getWeeklyDefects);
 
   const data = useMemo(() => {
     switch (dataSource) {
@@ -20,10 +21,12 @@ export function useDataSource(dataSource: DataSourceType) {
         return qualityRecords ?? [];
       case 'order-delivery':
         return orders ?? [];
+      case 'weekly-defects':
+        return weeklyDefects ?? [];
       default:
         return [];
     }
-  }, [dataSource, lineProduction, equipment, qualityRecords, orders]);
+  }, [dataSource, lineProduction, equipment, qualityRecords, orders, weeklyDefects]);
 
   return data;
 }
