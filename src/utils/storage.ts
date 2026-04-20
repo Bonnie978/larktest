@@ -19,3 +19,11 @@ export function saveCharts(charts: ChartConfig[]): void {
     console.error('Failed to save charts to localStorage', e);
   }
 }
+
+export function clearCharts(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.error('Failed to clear charts from localStorage', e);
+  }
+}

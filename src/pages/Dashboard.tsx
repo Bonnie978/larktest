@@ -3,7 +3,7 @@ import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
 import { Button } from '@/components/ui/button';
 import ChartCard from '@/components/dashboard/ChartCard';
 import AddChartDialog from '@/components/dashboard/AddChartDialog';
-import { loadCharts, saveCharts } from '@/utils/storage';
+import { loadCharts, saveCharts, clearCharts } from '@/utils/storage';
 import type { ChartConfig } from '@/types/dashboard';
 import type { Layout } from 'react-grid-layout';
 
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [charts, setCharts] = useState<ChartConfig[]>(() => loadCharts());
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingChart, setEditingChart] = useState<ChartConfig | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { width } = useContainerWidth(containerRef);
 
@@ -51,12 +52,32 @@ export default function Dashboard() {
     });
   }, []);
 
+  const handleUpdateChart = useCallback((config: ChartConfig) => {
+    setCharts(prev => {
+      const updated = prev.map(c => c.id === config.id ? config : c);
+      saveCharts(updated);
+      return updated;
+    });
+  }, []);
+
   const handleRemoveChart = useCallback((id: string) => {
     setCharts(prev => {
       const updated = prev.filter(c => c.id !== id);
       saveCharts(updated);
       return updated;
     });
+  }, []);
+
+  const handleEditChart = useCallback((chart: ChartConfig) => {
+    setEditingChart(chart);
+    setShowAddDialog(true);
+  }, []);
+
+  const handleResetDefault = useCallback(() => {
+    if (confirm('确定要恢复默认看板吗？当前配置将被清除。')) {
+      clearCharts();
+      setCharts([]);
+    }
   }, []);
 
   const layouts = charts.map(c => ({
@@ -76,12 +97,20 @@ export default function Dashboard() {
         <h1 className="text-lg font-semibold">可视化仪表盘</h1>
         <div className="flex items-center gap-2">
           {isEdit && (
-            <Button size="sm" variant="outline" onClick={() => setShowAddDialog(true)}>
-              <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              添加图表
-            </Button>
+            <>
+              <Button size="sm" variant="outline" onClick={() => setShowAddDialog(true)}>
+                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                添加图表
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleResetDefault}>
+                <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                恢复默认
+              </Button>
+            </>
           )}
           <Button
             size="sm"
@@ -143,6 +172,7 @@ export default function Dashboard() {
                   config={chart}
                   editable={isEdit}
                   onRemove={() => handleRemoveChart(chart.id)}
+                  onEdit={() => handleEditChart(chart)}
                 />
               </div>
             ))}
@@ -150,11 +180,15 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Add Chart Dialog */}
+      {/* Add/Edit Chart Dialog */}
       <AddChartDialog
         open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
-        onAdd={handleAddChart}
+        onClose={() => {
+          setShowAddDialog(false);
+          setEditingChart(null);
+        }}
+        onAdd={editingChart ? handleUpdateChart : handleAddChart}
+        editingChart={editingChart}
       />
     </div>
   );
