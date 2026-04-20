@@ -1,11 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
 import { Button } from '@/components/ui/button';
 import ChartCard from '@/components/dashboard/ChartCard';
 import ChartBuilder from '@/components/dashboard/ChartBuilder';
 import { loadCharts, saveCharts } from '@/utils/storage';
 import type { ChartConfig, CardConfig } from '@/types/dashboard';
-import type { Layout } from 'react-grid-layout';
+import type { Layout, LayoutItem, ResponsiveLayouts } from 'react-grid-layout';
 import { useRequest } from '@/hooks/useRequest';
 import { getDataSources } from '@/api';
 
@@ -15,16 +15,15 @@ export default function Dashboard() {
   const [charts, setCharts] = useState<ChartConfig[]>(() => loadCharts());
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { width } = useContainerWidth(containerRef);
+  const { width, containerRef } = useContainerWidth();
 
   const isEdit = mode === 'edit';
 
   const handleLayoutChange = useCallback(
-    (newLayout: Layout[]) => {
+    (newLayout: Layout, _layouts: ResponsiveLayouts) => {
       setCharts(prev => {
         const updated = prev.map(chart => {
-          const layoutItem = newLayout.find(l => l.i === chart.id);
+          const layoutItem = newLayout.find((l: LayoutItem) => l.i === chart.id);
           if (layoutItem) {
             return {
               ...chart,
@@ -132,12 +131,10 @@ export default function Dashboard() {
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
             rowHeight={80}
-            isDraggable={isEdit}
-            isResizable={isEdit}
+            dragConfig={{ enabled: isEdit, cancel: '.no-drag' }}
+            resizeConfig={{ enabled: isEdit }}
             onLayoutChange={handleLayoutChange}
-            draggableCancel=".no-drag"
-            compactType="vertical"
-            margin={[16, 16]}
+            margin={[16, 16] as const}
           >
             {charts.map(chart => (
               <div key={chart.id}>

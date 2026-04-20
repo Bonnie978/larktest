@@ -64,4 +64,56 @@ export const dataSourceMeta: Record<DataSourceType, DataSourceMeta> = {
       { field: 'planned', label: '计划产量' },
     ],
   },
+  'weekly-defects': {
+    label: '每日质量',
+    dimensions: [
+      { field: 'date', label: '日期' },
+      { field: 'mainDefectType', label: '主要缺陷类型' },
+    ],
+    metrics: [
+      { field: 'inspectedQty', label: '检验数量' },
+      { field: 'defectQty', label: '不良数量' },
+      { field: 'defectRate', label: '不良率' },
+    ],
+  },
+  'equipment': {
+    label: '设备状态',
+    dimensions: [
+      { field: 'name', label: '设备名称' },
+      { field: 'lineName', label: '所属产线' },
+      { field: 'type', label: '设备类型' },
+      { field: 'status', label: '状态' },
+    ],
+    metrics: [
+      { field: 'availability', label: '可用率' },
+      { field: 'performance', label: '性能率' },
+      { field: 'quality', label: '质量率' },
+      { field: 'oee', label: 'OEE' },
+    ],
+  },
+  'quality-records': {
+    label: '质量记录',
+    dimensions: [
+      { field: 'lineName', label: '产线名称' },
+      { field: 'defectType', label: '缺陷类型' },
+      { field: 'status', label: '处理状态' },
+      { field: 'inspector', label: '检验员' },
+    ],
+    metrics: [
+      { field: 'defectCount', label: '缺陷数量' },
+    ],
+  },
+  'work-orders': {
+    label: '工单管理',
+    dimensions: [
+      { field: 'id', label: '工单号' },
+      { field: 'productModel', label: '产品型号' },
+      { field: 'customer', label: '客户' },
+      { field: 'deliveryStatus', label: '交付状态' },
+    ],
+    metrics: [
+      { field: 'plannedQty', label: '计划数量' },
+      { field: 'completedQty', label: '完成数量' },
+    ],
+  },
 };
