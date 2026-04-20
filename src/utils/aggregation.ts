@@ -36,12 +36,7 @@ export function aggregateData(
       [groupByField]: groupKey,
     };
 
-    if (aggregation === 'none') {
-      // 不聚合，仅投影字段（取第一条记录）
-      for (const field of valueFields) {
-        aggregated[field] = records[0][field];
-      }
-    } else if (aggregation === 'sum') {
+    if (aggregation === 'sum') {
       // 求和
       for (const field of valueFields) {
         aggregated[field] = records.reduce((sum, r) => sum + (Number(r[field]) || 0), 0);
