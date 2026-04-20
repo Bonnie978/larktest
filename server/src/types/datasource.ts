@@ -1,12 +1,11 @@
 export interface DataSourceField {
-  name: string;
-  type: 'string' | 'number' | 'date';
+  key: string;
   label: string;
+  type: 'string' | 'number';
 }
 
 export interface DataSourceMeta {
   id: string;
   name: string;
-  description: string;
   fields: DataSourceField[];
 }

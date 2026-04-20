@@ -46,7 +46,7 @@ export default function ChartBuilder({
 
   const fieldLabels = useMemo(() => {
     const map: Record<string, string> = {};
-    currentSource?.fields.forEach(f => { map[f.name] = f.label; });
+    currentSource?.fields.forEach(f => { map[f.key] = f.label; });
     return map;
   }, [currentSource]);
 
@@ -76,8 +76,8 @@ export default function ChartBuilder({
     if (!ds) return;
     const strFields = ds.fields.filter(f => f.type === 'string');
     const numFields = ds.fields.filter(f => f.type === 'number');
-    setDimension(strFields[0]?.name ?? '');
-    setMetrics(numFields.slice(0, 2).map(f => f.name));
+    setDimension(strFields[0]?.key ?? '');
+    setMetrics(numFields.slice(0, 2).map(f => f.key));
     setChartType('bar');
     setAggregation('sum');
     setTitle('');
@@ -157,12 +157,12 @@ export default function ChartBuilder({
               <label className="text-sm font-medium text-gray-700 mb-2 block">维度字段（X 轴）</label>
               <div className="space-y-1.5">
                 {stringFields.map(f => (
-                  <label key={f.name} className="flex items-center gap-2 cursor-pointer text-sm">
+                  <label key={f.key} className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
                       type="radio"
                       name="dimension"
-                      checked={dimension === f.name}
-                      onChange={() => setDimension(f.name)}
+                      checked={dimension === f.key}
+                      onChange={() => setDimension(f.key)}
                       className="accent-[#1664FF]"
                     />
                     {f.label}
@@ -176,11 +176,11 @@ export default function ChartBuilder({
               <label className="text-sm font-medium text-gray-700 mb-2 block">指标字段（Y 轴）</label>
               <div className="space-y-1.5">
                 {numberFields.map(f => (
-                  <label key={f.name} className="flex items-center gap-2 cursor-pointer text-sm">
+                  <label key={f.key} className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
                       type="checkbox"
-                      checked={metrics.includes(f.name)}
-                      onChange={() => toggleMetric(f.name)}
+                      checked={metrics.includes(f.key)}
+                      onChange={() => toggleMetric(f.key)}
                       className="accent-[#1664FF]"
                     />
                     {f.label}

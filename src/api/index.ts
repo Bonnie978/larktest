@@ -30,7 +30,8 @@ export const getQualityRecords = (params?: { lineName?: string; defectType?: str
 export const getOrders = () => request<WorkOrder[]>('/orders');
 
 // 数据源
-import type { DataSourceMeta } from '@/types/dashboard';
+import type { DataSourceMeta as ApiDataSourceMeta } from '@/types/dashboard';
 
-export const getDataSources = () => request<DataSourceMeta[]>('/datasource');
-export const getDataSourceData = (id: string) => request<Record<string, any>[]>(`/datasource/${id}/data`);
+export const getDataSources = () => request<ApiDataSourceMeta[]>('/datasource');
+export const getDataSourceData = (id: string, params?: Record<string, string>) =>
+  request<Record<string, any>[]>(`/datasource/${id}/data`, params);
