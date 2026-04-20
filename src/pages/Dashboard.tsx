@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
+import { verticalCompactor } from 'react-grid-layout/core';
 import { Button } from '@/components/ui/button';
 import ChartCard from '@/components/dashboard/ChartCard';
 import AddChartDialog from '@/components/dashboard/AddChartDialog';
 import { loadCharts, saveCharts, clearCharts } from '@/utils/storage';
 import type { ChartConfig } from '@/types/dashboard';
-import type { Layout } from 'react-grid-layout';
+import type { Layout, LayoutItem } from 'react-grid-layout';
 
 import 'react-grid-layout/css/styles.css';
 
@@ -14,16 +15,15 @@ export default function Dashboard() {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingChart, setEditingChart] = useState<ChartConfig | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { width } = useContainerWidth(containerRef);
+  const { width, containerRef } = useContainerWidth();
 
   const isEdit = mode === 'edit';
 
   const handleLayoutChange = useCallback(
-    (newLayout: Layout[]) => {
+    (newLayout: Layout) => {
       setCharts(prev => {
         const updated = prev.map(chart => {
-          const layoutItem = newLayout.find(l => l.i === chart.id);
+          const layoutItem = newLayout.find((l: LayoutItem) => l.i === chart.id);
           if (layoutItem) {
             return {
               ...chart,
@@ -80,15 +80,17 @@ export default function Dashboard() {
     }
   }, []);
 
-  const layouts = charts.map(c => ({
-    i: c.id,
-    x: c.layout.x,
-    y: c.layout.y,
-    w: c.layout.w,
-    h: c.layout.h,
-    minW: 2,
-    minH: 2,
-  }));
+  const layouts = useMemo(() => ({
+    lg: charts.map(c => ({
+      i: c.id,
+      x: c.layout.x,
+      y: c.layout.y,
+      w: c.layout.w,
+      h: c.layout.h,
+      minW: 2,
+      minH: 2,
+    })),
+  }), [charts]);
 
   return (
     <div className="p-6 space-y-4">
@@ -155,16 +157,15 @@ export default function Dashboard() {
           <ResponsiveGridLayout
             className="layout"
             width={width}
-            layouts={{ lg: layouts }}
+            layouts={layouts}
             breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
             cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
             rowHeight={80}
-            isDraggable={isEdit}
-            isResizable={isEdit}
-            onLayoutChange={handleLayoutChange}
-            draggableCancel=".no-drag"
-            compactType="vertical"
             margin={[16, 16]}
+            compactor={verticalCompactor}
+            dragConfig={{ enabled: isEdit, bounded: false, cancel: '.no-drag', threshold: 3 }}
+            resizeConfig={{ enabled: isEdit, handles: ['se'] }}
+            onLayoutChange={handleLayoutChange}
           >
             {charts.map(chart => (
               <div key={chart.id}>
