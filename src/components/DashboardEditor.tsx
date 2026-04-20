@@ -1,106 +1,55 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ChartCard from '@/components/dashboard/ChartCard';
+import AddChartDialog from '@/components/dashboard/AddChartDialog';
+import { loadCharts, saveCharts } from '@/utils/storage';
+import type { ChartConfig } from '@/types/dashboard';
 
-interface CardConfig {
-  id: string;
-  title: string;
-  dataSourceId: string;
-  chartType: 'bar' | 'line' | 'pie';
-  groupByField: string;
-  valueFields: string[];
-  aggregation: 'sum' | 'avg' | 'count' | 'max' | 'none';
-}
-
-interface GridLayoutItem {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
-
-interface DashboardCard {
-  config: CardConfig;
-  grid: GridLayoutItem;
-}
-
-interface DashboardConfig {
-  version: number;
-  cards: DashboardCard[];
-}
-
-const getDefaultCards = (): DashboardCard[] => [
+const getDefaultCharts = (): ChartConfig[] => [
   {
-    config: {
-      id: 'default-1',
-      title: '产线产量完成情况',
-      dataSourceId: 'line-production',
-      chartType: 'bar',
-      groupByField: 'lineName',
-      valueFields: ['planned', 'actual'],
-      aggregation: 'none',
-    },
-    grid: { x: 0, y: 0, w: 6, h: 4 },
+    id: 'default-1',
+    title: '产线产量完成情况',
+    dataSource: 'line-production',
+    dimension: 'lineName',
+    metrics: ['planned', 'actual'],
+    aggregation: 'sum',
+    chartType: 'bar',
+    layout: { x: 0, y: 0, w: 6, h: 4 },
   },
   {
-    config: {
-      id: 'default-2',
-      title: '近7天不良率趋势',
-      dataSourceId: 'weekly-defects',
-      chartType: 'line',
-      groupByField: 'date',
-      valueFields: ['defectRate'],
-      aggregation: 'none',
-    },
-    grid: { x: 6, y: 0, w: 6, h: 4 },
+    id: 'default-2',
+    title: '近7天不良率趋势',
+    dataSource: 'quality-defects',
+    dimension: 'lineName',
+    metrics: ['defectCount'],
+    aggregation: 'sum',
+    chartType: 'line',
+    layout: { x: 6, y: 0, w: 6, h: 4 },
   },
   {
-    config: {
-      id: 'default-3',
-      title: '不良类型分布',
-      dataSourceId: 'quality',
-      chartType: 'pie',
-      groupByField: 'defectType',
-      valueFields: ['defectCount'],
-      aggregation: 'sum',
-    },
-    grid: { x: 0, y: 4, w: 6, h: 4 },
+    id: 'default-3',
+    title: '设备OEE排行',
+    dataSource: 'equipment-oee',
+    dimension: 'name',
+    metrics: ['oee'],
+    aggregation: 'avg',
+    chartType: 'bar',
+    layout: { x: 0, y: 4, w: 6, h: 4 },
   },
 ];
 
-const STORAGE_KEY = 'dashboard-v2';
-
-const loadDashboard = (): DashboardCard[] => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return getDefaultCards();
-    const config: DashboardConfig = JSON.parse(saved);
-    if (config.version !== 2 || !Array.isArray(config.cards)) {
-      return getDefaultCards();
-    }
-    return config.cards;
-  } catch {
-    return getDefaultCards();
-  }
-};
-
-const saveDashboard = (cards: DashboardCard[]) => {
-  const config: DashboardConfig = { version: 2, cards };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-};
-
 export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
-  const [cards, setCards] = useState<DashboardCard[]>([]);
-  const [tempCards, setTempCards] = useState<DashboardCard[]>([]);
-
-  // Dynamically import react-grid-layout to avoid TS module issues
+  const [charts, setCharts] = useState<ChartConfig[]>([]);
+  const [tempCharts, setTempCharts] = useState<ChartConfig[]>([]);
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const [GridLayout, setGridLayout] = useState<any>(null);
 
   useEffect(() => {
-    const loaded = loadDashboard();
-    setCards(loaded);
-    setTempCards(loaded);
+    const loaded = loadCharts();
+    const initial = loaded.length > 0 ? loaded : getDefaultCharts();
+    setCharts(initial);
+    setTempCharts(initial);
   }, []);
 
   useEffect(() => {
@@ -111,63 +60,48 @@ export default function DashboardEditor() {
 
   const handleToggleEditMode = () => {
     if (isEditMode) {
-      setTempCards(cards);
+      setTempCharts(charts);
     }
     setIsEditMode(!isEditMode);
   };
 
   const handleSave = () => {
-    setCards(tempCards);
-    saveDashboard(tempCards);
+    setCharts(tempCharts);
+    saveCharts(tempCharts);
     setIsEditMode(false);
   };
 
   const handleCancel = () => {
-    setTempCards(cards);
+    setTempCharts(charts);
     setIsEditMode(false);
   };
 
   const handleResetDefault = () => {
-    setTempCards(getDefaultCards());
+    const defaults = getDefaultCharts();
+    setTempCharts(defaults);
   };
 
-  const handleAddCard = () => {
-    const newCard: DashboardCard = {
-      config: {
-        id: Date.now().toString(),
-        title: '新建图表',
-        dataSourceId: 'line-production',
-        chartType: 'bar',
-        groupByField: 'lineName',
-        valueFields: ['planned'],
-        aggregation: 'none',
-      },
-      grid: { x: 0, y: 0, w: 6, h: 4 },
-    };
-    const shifted = tempCards.map((c) => ({
-      ...c,
-      grid: { ...c.grid, y: c.grid.y + 4 },
-    }));
-    setTempCards([newCard, ...shifted]);
+  const handleAddChart = (config: ChartConfig) => {
+    setTempCharts([...tempCharts, config]);
   };
 
-  const handleDeleteCard = (id: string) => {
-    setTempCards(tempCards.filter((c) => c.config.id !== id));
+  const handleDeleteChart = (id: string) => {
+    setTempCharts(tempCharts.filter((c) => c.id !== id));
   };
 
   const handleLayoutChange = useCallback((layout: any) => {
     const arr = Array.isArray(layout) ? layout : [];
-    setTempCards((prev) =>
-      prev.map((card) => {
-        const g = arr.find((l: any) => l.i === card.config.id);
+    setTempCharts((prev) =>
+      prev.map((chart) => {
+        const g = arr.find((l: any) => l.i === chart.id);
         return g
-          ? { ...card, grid: { x: g.x, y: g.y, w: g.w, h: g.h } }
-          : card;
+          ? { ...chart, layout: { x: g.x, y: g.y, w: g.w, h: g.h } }
+          : chart;
       }),
     );
   }, []);
 
-  const displayCards = isEditMode ? tempCards : cards;
+  const displayCharts = isEditMode ? tempCharts : charts;
 
   const renderToolbar = () => {
     if (!isEditMode) {
@@ -179,8 +113,8 @@ export default function DashboardEditor() {
     }
     return (
       <div className="flex gap-2">
-        <Button onClick={handleAddCard} variant="outline" size="sm">
-          新建图表
+        <Button onClick={() => setShowAddDialog(true)} variant="outline" size="sm">
+          新增图表
         </Button>
         <Button onClick={handleResetDefault} variant="outline" size="sm">
           恢复默认
@@ -195,38 +129,6 @@ export default function DashboardEditor() {
     );
   };
 
-  const renderCard = (card: DashboardCard) => (
-    <Card className="shadow-sm h-full overflow-hidden">
-      <CardHeader className="pb-2 pt-3 px-4 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm font-medium">
-          {card.config.title}
-        </CardTitle>
-        {isEditMode && (
-          <div className="flex gap-1">
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground px-1"
-              onClick={() => {}}
-            >
-              ✎
-            </button>
-            <button
-              className="text-xs text-muted-foreground hover:text-destructive px-1"
-              onClick={() => handleDeleteCard(card.config.id)}
-            >
-              ✕
-            </button>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="px-4 pb-3 flex-1 flex items-center justify-center">
-        <span className="text-sm text-muted-foreground">
-          图表占位符 - {card.config.chartType}
-        </span>
-      </CardContent>
-    </Card>
-  );
-
-  // Fallback grid when react-grid-layout not loaded yet
   if (!GridLayout) {
     return (
       <div className="space-y-4">
@@ -235,12 +137,21 @@ export default function DashboardEditor() {
           {renderToolbar()}
         </div>
         <div className="grid grid-cols-2 gap-4">
-          {displayCards.map((card) => (
-            <div key={card.config.id} style={{ minHeight: 320 }}>
-              {renderCard(card)}
+          {displayCharts.map((chart) => (
+            <div key={chart.id} style={{ minHeight: 320 }}>
+              <ChartCard
+                config={chart}
+                editable={isEditMode}
+                onRemove={() => handleDeleteChart(chart.id)}
+              />
             </div>
           ))}
         </div>
+        <AddChartDialog
+          open={showAddDialog}
+          onClose={() => setShowAddDialog(false)}
+          onAdd={handleAddChart}
+        />
       </div>
     );
   }
@@ -254,9 +165,9 @@ export default function DashboardEditor() {
       <div style={{ width: '100%' }}>
         <GridLayout
           className="layout"
-          layout={displayCards.map((c) => ({
-            i: c.config.id,
-            ...c.grid,
+          layout={displayCharts.map((c) => ({
+            i: c.id,
+            ...c.layout,
           }))}
           cols={12}
           rowHeight={80}
@@ -265,11 +176,22 @@ export default function DashboardEditor() {
           isResizable={isEditMode}
           onLayoutChange={handleLayoutChange}
         >
-          {displayCards.map((card) => (
-            <div key={card.config.id}>{renderCard(card)}</div>
+          {displayCharts.map((chart) => (
+            <div key={chart.id}>
+              <ChartCard
+                config={chart}
+                editable={isEditMode}
+                onRemove={() => handleDeleteChart(chart.id)}
+              />
+            </div>
           ))}
         </GridLayout>
       </div>
+      <AddChartDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onAdd={handleAddChart}
+      />
     </div>
   );
 }
