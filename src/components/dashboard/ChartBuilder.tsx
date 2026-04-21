@@ -16,6 +16,7 @@ const AGGREGATION_TYPES: { value: AggregationType; label: string }[] = [
   { value: 'avg', label: '平均值' },
   { value: 'count', label: '计数' },
   { value: 'max', label: '最大值' },
+  { value: 'min', label: '最小值' },
 ];
 
 interface ChartBuilderProps {
