@@ -60,7 +60,14 @@ export function aggregateData(
     } else if (aggregation === 'max') {
       // 最大值
       for (const field of valueFields) {
-        aggregated[field] = Math.max(...records.map(r => Number(r[field]) || 0));
+        const values = records.map(r => Number(r[field]) || 0);
+        aggregated[field] = values.length > 0 ? Math.max(...values) : 0;
+      }
+    } else if (aggregation === 'min') {
+      // 最小值
+      for (const field of valueFields) {
+        const values = records.map(r => Number(r[field]) || 0);
+        aggregated[field] = values.length > 0 ? Math.min(...values) : 0;
       }
     }
 
