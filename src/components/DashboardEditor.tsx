@@ -1,16 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
-interface CardConfig {
-  id: string;
-  title: string;
-  dataSourceId: string;
-  chartType: 'bar' | 'line' | 'pie';
-  groupByField: string;
-  valueFields: string[];
-  aggregation: 'sum' | 'avg' | 'count' | 'max' | 'none';
-}
+import ChartBuilder from '@/components/dashboard/ChartBuilder';
+import { getDataSources } from '@/api';
+import { useRequest } from '@/hooks/useRequest';
+import type { CardConfig, DataSourceMeta } from '@/types/dashboard';
 
 interface GridLayoutItem {
   x: number;
@@ -93,9 +87,14 @@ export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [cards, setCards] = useState<DashboardCard[]>([]);
   const [tempCards, setTempCards] = useState<DashboardCard[]>([]);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingCardConfig, setEditingCardConfig] = useState<CardConfig | undefined>();
 
   // Dynamically import react-grid-layout to avoid TS module issues
   const [GridLayout, setGridLayout] = useState<any>(null);
+
+  // Fetch data sources for ChartBuilder
+  const { data: dataSources } = useRequest<DataSourceMeta[]>(getDataSources);
 
   useEffect(() => {
     const loaded = loadDashboard();
@@ -132,23 +131,43 @@ export default function DashboardEditor() {
   };
 
   const handleAddCard = () => {
-    const newCard: DashboardCard = {
-      config: {
-        id: Date.now().toString(),
-        title: '新建图表',
-        dataSourceId: 'line-production',
-        chartType: 'bar',
-        groupByField: 'lineName',
-        valueFields: ['planned'],
-        aggregation: 'none',
-      },
-      grid: { x: 0, y: 0, w: 6, h: 4 },
-    };
-    const shifted = tempCards.map((c) => ({
-      ...c,
-      grid: { ...c.grid, y: c.grid.y + 4 },
-    }));
-    setTempCards([newCard, ...shifted]);
+    setEditingCardConfig(undefined);
+    setBuilderOpen(true);
+  };
+
+  const handleEditCard = (id: string) => {
+    const card = tempCards.find(c => c.config.id === id);
+    if (card) {
+      setEditingCardConfig(card.config);
+      setBuilderOpen(true);
+    }
+  };
+
+  const handleBuilderConfirm = (config: CardConfig) => {
+    if (editingCardConfig) {
+      // Edit existing card
+      setTempCards(prev => prev.map(c => 
+        c.config.id === config.id ? { ...c, config } : c
+      ));
+    } else {
+      // Add new card
+      const newCard: DashboardCard = {
+        config,
+        grid: { x: 0, y: 0, w: 6, h: 4 },
+      };
+      const shifted = tempCards.map((c) => ({
+        ...c,
+        grid: { ...c.grid, y: c.grid.y + 4 },
+      }));
+      setTempCards([newCard, ...shifted]);
+    }
+    setBuilderOpen(false);
+    setEditingCardConfig(undefined);
+  };
+
+  const handleBuilderCancel = () => {
+    setBuilderOpen(false);
+    setEditingCardConfig(undefined);
   };
 
   const handleDeleteCard = (id: string) => {
@@ -205,7 +224,7 @@ export default function DashboardEditor() {
           <div className="flex gap-1">
             <button
               className="text-xs text-muted-foreground hover:text-foreground px-1"
-              onClick={() => {}}
+              onClick={() => handleEditCard(card.config.id)}
             >
               ✎
             </button>
@@ -241,6 +260,13 @@ export default function DashboardEditor() {
             </div>
           ))}
         </div>
+        <ChartBuilder
+          open={builderOpen}
+          editingConfig={editingCardConfig}
+          dataSources={dataSources ?? []}
+          onConfirm={handleBuilderConfirm}
+          onCancel={handleBuilderCancel}
+        />
       </div>
     );
   }
@@ -270,6 +296,13 @@ export default function DashboardEditor() {
           ))}
         </GridLayout>
       </div>
+      <ChartBuilder
+        open={builderOpen}
+        editingConfig={editingCardConfig}
+        dataSources={dataSources ?? []}
+        onConfirm={handleBuilderConfirm}
+        onCancel={handleBuilderCancel}
+      />
     </div>
   );
 }

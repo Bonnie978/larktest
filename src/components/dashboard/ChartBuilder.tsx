@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { CardConfig, ChartType, AggregationType, DataSourceMeta } from '@/types/dashboard';
+import type { CardConfig, AggregationType, DataSourceMeta } from '@/types/dashboard';
 import { getDataSourceData } from '@/api';
 import { useRequest } from '@/hooks/useRequest';
 import ChartPreview from './ChartPreview';
+
+type ChartType = 'bar' | 'line' | 'pie';
 
 const CHART_TYPES: { value: ChartType; label: string }[] = [
   { value: 'bar', label: '柱状图' },
@@ -56,7 +58,6 @@ export default function ChartBuilder({
     [selectedSource]
   );
 
-  // Initialize/reset when opening or switching source
   useEffect(() => {
     if (!open) return;
     if (editingConfig) {

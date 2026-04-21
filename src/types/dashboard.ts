@@ -5,7 +5,7 @@ export type DataSourceType =
   | 'order-delivery'
   | 'shift-output';
 
-export type AggregationType = 'sum' | 'avg' | 'count' | 'max' | 'min' | 'none';
+export type AggregationType = 'none' | 'sum' | 'avg' | 'count' | 'max' | 'min';
 export type ChartType = 'bar' | 'line' | 'pie' | 'area';
 
 export interface LayoutConfig {
@@ -24,16 +24,6 @@ export interface ChartConfig {
   aggregation: AggregationType;
   chartType: ChartType;
   layout: LayoutConfig;
-}
-
-export interface AggregatedDataPoint {
-  category: string;
-  value: number;
-}
-
-export interface AggregatedData {
-  name: string;
-  data: AggregatedDataPoint[];
 }
 
 // Data source metadata
@@ -55,8 +45,18 @@ export interface CardConfig {
   id: string;
   title: string;
   dataSourceId: string;
-  chartType: ChartType;
+  chartType: 'bar' | 'line' | 'pie';
   groupByField: string;
   valueFields: string[];
   aggregation: AggregationType;
+}
+
+export interface AggregatedDataPoint {
+  category: string;
+  value: number;
+}
+
+export interface AggregatedData {
+  name: string;
+  data: AggregatedDataPoint[];
 }
