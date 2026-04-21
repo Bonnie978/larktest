@@ -89,6 +89,10 @@ const saveDashboard = (cards: DashboardCard[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 };
 
+const clearDashboard = () => {
+  localStorage.removeItem(STORAGE_KEY);
+};
+
 export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [cards, setCards] = useState<DashboardCard[]>([]);
@@ -128,7 +132,11 @@ export default function DashboardEditor() {
   };
 
   const handleResetDefault = () => {
-    setTempCards(getDefaultCards());
+    const defaultCards = getDefaultCards();
+    clearDashboard();
+    setCards(defaultCards);
+    setTempCards(defaultCards);
+    setIsEditMode(false);
   };
 
   const handleAddCard = () => {
@@ -157,14 +165,20 @@ export default function DashboardEditor() {
 
   const handleLayoutChange = useCallback((layout: any) => {
     const arr = Array.isArray(layout) ? layout : [];
-    setTempCards((prev) =>
+    const updateCards = (prev: DashboardCard[]) =>
       prev.map((card) => {
         const g = arr.find((l: any) => l.i === card.config.id);
         return g
           ? { ...card, grid: { x: g.x, y: g.y, w: g.w, h: g.h } }
           : card;
-      }),
-    );
+      });
+
+    setTempCards((prev) => {
+      const updated = updateCards(prev);
+      setCards(updated);
+      saveDashboard(updated);
+      return updated;
+    });
   }, []);
 
   const displayCards = isEditMode ? tempCards : cards;
