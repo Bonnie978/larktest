@@ -1,28 +1,64 @@
-import { useState, useCallback, useRef } from 'react';
-import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
+import { useState, useCallback } from 'react';
+import GridLayout from 'react-grid-layout';
 import { Button } from '@/components/ui/button';
 import ChartCard from '@/components/dashboard/ChartCard';
 import AddChartDialog from '@/components/dashboard/AddChartDialog';
 import { loadCharts, saveCharts } from '@/utils/storage';
 import type { ChartConfig } from '@/types/dashboard';
-import type { Layout } from 'react-grid-layout';
 
 import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
+const getDefaultCharts = (): ChartConfig[] => [
+  {
+    id: 'default-1',
+    title: '产线产量完成情况',
+    dataSource: 'line-production',
+    dimension: 'lineName',
+    metrics: ['planned', 'actual'],
+    aggregation: 'sum',
+    chartType: 'bar',
+    layout: { x: 0, y: 0, w: 6, h: 4 },
+  },
+  {
+    id: 'default-2',
+    title: '设备OEE趋势',
+    dataSource: 'equipment-oee',
+    dimension: 'date',
+    metrics: ['oee'],
+    aggregation: 'avg',
+    chartType: 'line',
+    layout: { x: 6, y: 0, w: 6, h: 4 },
+  },
+  {
+    id: 'default-3',
+    title: '质量缺陷分布',
+    dataSource: 'quality-defects',
+    dimension: 'defectType',
+    metrics: ['count'],
+    aggregation: 'sum',
+    chartType: 'pie',
+    layout: { x: 0, y: 4, w: 6, h: 4 },
+  },
+];
 
 export default function Dashboard() {
-  const [charts, setCharts] = useState<ChartConfig[]>(() => loadCharts());
+  const [charts, setCharts] = useState<ChartConfig[]>(() => {
+    const loaded = loadCharts();
+    return loaded.length > 0 ? loaded : getDefaultCharts();
+  });
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { width } = useContainerWidth(containerRef);
 
   const isEdit = mode === 'edit';
 
   const handleLayoutChange = useCallback(
-    (newLayout: Layout[]) => {
+    (newLayout: any) => {
+      if (!isEdit) return;
+      const layoutArray = Array.isArray(newLayout) ? newLayout : [];
       setCharts(prev => {
         const updated = prev.map(chart => {
-          const layoutItem = newLayout.find(l => l.i === chart.id);
+          const layoutItem = layoutArray.find((l: any) => l.i === chart.id);
           if (layoutItem) {
             return {
               ...chart,
@@ -40,7 +76,7 @@ export default function Dashboard() {
         return updated;
       });
     },
-    [],
+    [isEdit],
   );
 
   const handleAddChart = useCallback((config: ChartConfig) => {
@@ -58,16 +94,6 @@ export default function Dashboard() {
       return updated;
     });
   }, []);
-
-  const layouts = charts.map(c => ({
-    i: c.id,
-    x: c.layout.x,
-    y: c.layout.y,
-    w: c.layout.w,
-    h: c.layout.h,
-    minW: 2,
-    minH: 2,
-  }));
 
   return (
     <div className="p-6 space-y-4">
@@ -107,38 +133,38 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Empty state */}
-      {charts.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-[400px] text-muted-foreground">
-          <svg className="w-16 h-16 mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm10 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
-          </svg>
-          <p className="text-sm mb-3">尚未添加任何图表</p>
-          <Button size="sm" onClick={() => { setMode('edit'); setShowAddDialog(true); }}>
-            添加第一个图表
-          </Button>
-        </div>
-      )}
-
       {/* Grid Layout */}
-      <div ref={containerRef}>
-        {charts.length > 0 && width > 0 && (
-          <ResponsiveGridLayout
-            className="layout"
-            width={width}
-            layouts={{ lg: layouts }}
-            breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-            rowHeight={80}
-            isDraggable={isEdit}
-            isResizable={isEdit}
+      {charts.length > 0 && (
+        <div style={{ width: '100%' }}>
+          <GridLayout
+            width={1200}
+            gridConfig={{
+              cols: 12,
+              rowHeight: 80,
+              margin: [16, 16],
+              containerPadding: null,
+              maxRows: Infinity,
+            }}
+            dragConfig={{
+              enabled: isEdit,
+            }}
+            resizeConfig={{
+              enabled: isEdit,
+            }}
             onLayoutChange={handleLayoutChange}
-            draggableCancel=".no-drag"
-            compactType="vertical"
-            margin={[16, 16]}
           >
             {charts.map(chart => (
-              <div key={chart.id}>
+              <div
+                key={chart.id}
+                data-grid={{
+                  x: chart.layout.x,
+                  y: chart.layout.y,
+                  w: chart.layout.w,
+                  h: chart.layout.h,
+                  minW: 2,
+                  minH: 2,
+                }}
+              >
                 <ChartCard
                   config={chart}
                   editable={isEdit}
@@ -146,9 +172,9 @@ export default function Dashboard() {
                 />
               </div>
             ))}
-          </ResponsiveGridLayout>
-        )}
-      </div>
+          </GridLayout>
+        </div>
+      )}
 
       {/* Add Chart Dialog */}
       <AddChartDialog

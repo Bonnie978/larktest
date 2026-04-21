@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import GridLayout from 'react-grid-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+
+import '@/grid-layout.css';
 
 interface CardConfig {
   id: string;
@@ -94,19 +97,10 @@ export default function DashboardEditor() {
   const [cards, setCards] = useState<DashboardCard[]>([]);
   const [tempCards, setTempCards] = useState<DashboardCard[]>([]);
 
-  // Dynamically import react-grid-layout to avoid TS module issues
-  const [GridLayout, setGridLayout] = useState<any>(null);
-
   useEffect(() => {
     const loaded = loadDashboard();
     setCards(loaded);
     setTempCards(loaded);
-  }, []);
-
-  useEffect(() => {
-    import('react-grid-layout').then((mod) => {
-      setGridLayout(() => mod.default);
-    });
   }, []);
 
   const handleToggleEditMode = () => {
@@ -226,25 +220,6 @@ export default function DashboardEditor() {
     </Card>
   );
 
-  // Fallback grid when react-grid-layout not loaded yet
-  if (!GridLayout) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">自定义看板</h2>
-          {renderToolbar()}
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {displayCards.map((card) => (
-            <div key={card.config.id} style={{ minHeight: 320 }}>
-              {renderCard(card)}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -253,20 +228,36 @@ export default function DashboardEditor() {
       </div>
       <div style={{ width: '100%' }}>
         <GridLayout
-          className="layout"
-          layout={displayCards.map((c) => ({
-            i: c.config.id,
-            ...c.grid,
-          }))}
-          cols={12}
-          rowHeight={80}
           width={1200}
-          isDraggable={isEditMode}
-          isResizable={isEditMode}
+          gridConfig={{
+            cols: 12,
+            rowHeight: 80,
+            margin: [16, 16],
+            containerPadding: null,
+            maxRows: Infinity,
+          }}
+          dragConfig={{
+            enabled: isEditMode,
+          }}
+          resizeConfig={{
+            enabled: isEditMode,
+          }}
           onLayoutChange={handleLayoutChange}
         >
           {displayCards.map((card) => (
-            <div key={card.config.id}>{renderCard(card)}</div>
+            <div
+              key={card.config.id}
+              data-grid={{
+                x: card.grid.x,
+                y: card.grid.y,
+                w: card.grid.w,
+                h: card.grid.h,
+                minW: 2,
+                minH: 2,
+              }}
+            >
+              {renderCard(card)}
+            </div>
           ))}
         </GridLayout>
       </div>
