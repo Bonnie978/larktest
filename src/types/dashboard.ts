@@ -5,7 +5,7 @@ export type DataSourceType =
   | 'order-delivery'
   | 'shift-output';
 
-export type AggregationType = 'sum' | 'avg' | 'count' | 'max' | 'min';
+export type AggregationType = 'none' | 'sum' | 'avg' | 'count' | 'max' | 'min';
 export type ChartType = 'bar' | 'line' | 'pie' | 'area';
 
 export interface LayoutConfig {
@@ -24,6 +24,17 @@ export interface ChartConfig {
   aggregation: AggregationType;
   chartType: ChartType;
   layout: LayoutConfig;
+}
+
+export interface DataSourceFieldMeta {
+  field: string;
+  label: string;
+}
+
+export interface DataSourceMeta {
+  label: string;
+  dimensions: DataSourceFieldMeta[];
+  metrics: DataSourceFieldMeta[];
 }
 
 export interface AggregatedDataPoint {
