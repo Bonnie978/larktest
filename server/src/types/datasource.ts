@@ -4,9 +4,16 @@ export interface DataSourceField {
   label: string;
 }
 
+export interface DimensionOrMetric {
+  field: string;
+  label: string;
+}
+
 export interface DataSourceMeta {
   id: string;
   name: string;
   description: string;
   fields: DataSourceField[];
+  dimensions: DimensionOrMetric[];
+  metrics: DimensionOrMetric[];
 }
