@@ -2,18 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import GridLayout from 'react-grid-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ChartBuilder from '@/components/dashboard/ChartBuilder';
 
 import '@/grid-layout.css';
-
-interface CardConfig {
-  id: string;
-  title: string;
-  dataSourceId: string;
-  chartType: 'bar' | 'line' | 'pie';
-  groupByField: string;
-  valueFields: string[];
-  aggregation: 'sum' | 'avg' | 'count' | 'max' | 'none';
-}
+import type { CardConfig, DataSourceMeta } from '@/types/dashboard';
+import { getDataSources } from '@/api';
+import { useRequest } from '@/hooks/useRequest';
 
 interface GridLayoutItem {
   x: number;
@@ -97,6 +91,16 @@ export default function DashboardEditor() {
   const [cards, setCards] = useState<DashboardCard[]>([]);
   const [tempCards, setTempCards] = useState<DashboardCard[]>([]);
 
+  // ChartBuilder state
+  const [chartBuilderOpen, setChartBuilderOpen] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<CardConfig | undefined>(undefined);
+
+  const { data: dataSources } = useRequest<DataSourceMeta[]>(
+    () => getDataSources(),
+    []
+  );
+  const safeDataSources: DataSourceMeta[] = dataSources ?? [];
+
   useEffect(() => {
     const loaded = loadDashboard();
     setCards(loaded);
@@ -125,24 +129,46 @@ export default function DashboardEditor() {
     setTempCards(getDefaultCards());
   };
 
+  // Open ChartBuilder in create mode
   const handleAddCard = () => {
-    const newCard: DashboardCard = {
-      config: {
-        id: Date.now().toString(),
-        title: '新建图表',
-        dataSourceId: 'line-production',
-        chartType: 'bar',
-        groupByField: 'lineName',
-        valueFields: ['planned'],
-        aggregation: 'none',
-      },
-      grid: { x: 0, y: 0, w: 6, h: 4 },
-    };
-    const shifted = tempCards.map((c) => ({
-      ...c,
-      grid: { ...c.grid, y: c.grid.y + 4 },
-    }));
-    setTempCards([newCard, ...shifted]);
+    setEditingConfig(undefined);
+    setChartBuilderOpen(true);
+  };
+
+  // Open ChartBuilder in edit mode
+  const handleEditCard = (config: CardConfig) => {
+    setEditingConfig(config);
+    setChartBuilderOpen(true);
+  };
+
+  // ChartBuilder onConfirm handler
+  const handleChartBuilderConfirm = (config: CardConfig) => {
+    setChartBuilderOpen(false);
+    if (editingConfig) {
+      // Edit mode: update card in-place
+      setTempCards(prev =>
+        prev.map(c =>
+          c.config.id === config.id ? { ...c, config } : c
+        )
+      );
+    } else {
+      // Create mode: insert at top, shift others down
+      const newCard: DashboardCard = {
+        config,
+        grid: { x: 0, y: 0, w: 6, h: 4 },
+      };
+      const shifted = tempCards.map(c => ({
+        ...c,
+        grid: { ...c.grid, y: c.grid.y + 4 },
+      }));
+      setTempCards([newCard, ...shifted]);
+    }
+    setEditingConfig(undefined);
+  };
+
+  const handleChartBuilderCancel = () => {
+    setChartBuilderOpen(false);
+    setEditingConfig(undefined);
   };
 
   const handleDeleteCard = (id: string) => {
@@ -199,7 +225,7 @@ export default function DashboardEditor() {
           <div className="flex gap-1">
             <button
               className="text-xs text-muted-foreground hover:text-foreground px-1"
-              onClick={() => {}}
+              onClick={() => handleEditCard(card.config)}
             >
               ✎
             </button>
@@ -261,6 +287,14 @@ export default function DashboardEditor() {
           ))}
         </GridLayout>
       </div>
+
+      <ChartBuilder
+        open={chartBuilderOpen}
+        editingConfig={editingConfig}
+        dataSources={safeDataSources}
+        onConfirm={handleChartBuilderConfirm}
+        onCancel={handleChartBuilderCancel}
+      />
     </div>
   );
 }
