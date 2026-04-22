@@ -87,15 +87,25 @@ const loadDashboard = (): DashboardCard[] => {
   }
 };
 
-const saveDashboard = (cards: DashboardCard[]) => {
-  const config: DashboardConfig = { version: 2, cards };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+const saveDashboard = (cards: DashboardCard[], onError: () => void): void => {
+  try {
+    const config: DashboardConfig = { version: 2, cards };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  } catch {
+    onError();
+  }
 };
 
 export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [cards, setCards] = useState<DashboardCard[]>([]);
   const [tempCards, setTempCards] = useState<DashboardCard[]>([]);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
   useEffect(() => {
     const loaded = loadDashboard();
@@ -103,16 +113,14 @@ export default function DashboardEditor() {
     setTempCards(loaded);
   }, []);
 
-  const handleToggleEditMode = () => {
-    if (isEditMode) {
-      setTempCards(cards);
-    }
-    setIsEditMode(!isEditMode);
+  const handleEnterEditMode = () => {
+    setTempCards(cards);
+    setIsEditMode(true);
   };
 
   const handleSave = () => {
+    saveDashboard(tempCards, () => showToast('保存失败，请清理浏览器存储'));
     setCards(tempCards);
-    saveDashboard(tempCards);
     setIsEditMode(false);
   };
 
@@ -166,7 +174,7 @@ export default function DashboardEditor() {
   const renderToolbar = () => {
     if (!isEditMode) {
       return (
-        <Button onClick={handleToggleEditMode} variant="outline" size="sm">
+        <Button onClick={handleEnterEditMode} variant="outline" size="sm">
           编辑看板
         </Button>
       );
@@ -222,6 +230,11 @@ export default function DashboardEditor() {
 
   return (
     <div className="space-y-4">
+      {toastMsg && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-md bg-destructive px-4 py-2 text-sm text-white shadow-lg">
+          {toastMsg}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold">自定义看板</h2>
         {renderToolbar()}
