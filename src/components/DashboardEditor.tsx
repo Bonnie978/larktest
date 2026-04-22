@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import GridLayout from 'react-grid-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ChartCard from '@/components/dashboard/ChartCard';
+import type { ChartConfig, DataSourceType } from '@/types/dashboard';
 
 import '@/grid-layout.css';
 
@@ -91,6 +92,17 @@ const saveDashboard = (cards: DashboardCard[]) => {
   const config: DashboardConfig = { version: 2, cards };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
 };
+
+const toChartConfig = (card: DashboardCard): ChartConfig => ({
+  id: card.config.id,
+  title: card.config.title,
+  dataSource: card.config.dataSourceId as DataSourceType,
+  dimension: card.config.groupByField,
+  metrics: card.config.valueFields,
+  aggregation: card.config.aggregation as ChartConfig['aggregation'],
+  chartType: card.config.chartType as ChartConfig['chartType'],
+  layout: card.grid,
+});
 
 export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -190,34 +202,11 @@ export default function DashboardEditor() {
   };
 
   const renderCard = (card: DashboardCard) => (
-    <Card className="shadow-sm h-full overflow-hidden">
-      <CardHeader className="pb-2 pt-3 px-4 flex flex-row items-center justify-between">
-        <CardTitle className="text-sm font-medium">
-          {card.config.title}
-        </CardTitle>
-        {isEditMode && (
-          <div className="flex gap-1">
-            <button
-              className="text-xs text-muted-foreground hover:text-foreground px-1"
-              onClick={() => {}}
-            >
-              ✎
-            </button>
-            <button
-              className="text-xs text-muted-foreground hover:text-destructive px-1"
-              onClick={() => handleDeleteCard(card.config.id)}
-            >
-              ✕
-            </button>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="px-4 pb-3 flex-1 flex items-center justify-center">
-        <span className="text-sm text-muted-foreground">
-          图表占位符 - {card.config.chartType}
-        </span>
-      </CardContent>
-    </Card>
+    <ChartCard
+      config={toChartConfig(card)}
+      editable={isEditMode}
+      onRemove={() => handleDeleteCard(card.config.id)}
+    />
   );
 
   return (
