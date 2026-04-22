@@ -46,7 +46,7 @@ export default function AddChartDialog({ open, onClose, onAdd }: AddChartDialogP
   const handleSubmit = () => {
     const config: ChartConfig = {
       id: `chart-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      title: title || `${meta.label} - ${chartTypes.find(c => c.value === chartType)?.label ?? chartType}`,
+      title: title || `${meta.name} - ${chartTypes.find(c => c.value === chartType)?.label ?? chartType}`,
       dataSource,
       dimension,
       metrics: [selectedMetric],
@@ -95,7 +95,7 @@ export default function AddChartDialog({ open, onClose, onAdd }: AddChartDialogP
                       : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
-                  {dataSourceMeta[ds].label}
+                  {dataSourceMeta[ds].name}
                 </button>
               ))}
             </div>
