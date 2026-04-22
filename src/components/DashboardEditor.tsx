@@ -2,18 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import GridLayout from 'react-grid-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ChartBuilder from '@/components/dashboard/ChartBuilder';
+import { getDataSources } from '@/api';
+import { useRequest } from '@/hooks/useRequest';
+import type { CardConfig, DataSourceMeta } from '@/types/dashboard';
 
 import '@/grid-layout.css';
-
-interface CardConfig {
-  id: string;
-  title: string;
-  dataSourceId: string;
-  chartType: 'bar' | 'line' | 'pie';
-  groupByField: string;
-  valueFields: string[];
-  aggregation: 'sum' | 'avg' | 'count' | 'max' | 'none';
-}
 
 interface GridLayoutItem {
   x: number;
@@ -96,6 +90,13 @@ export default function DashboardEditor() {
   const [isEditMode, setIsEditMode] = useState(false);
   const [cards, setCards] = useState<DashboardCard[]>([]);
   const [tempCards, setTempCards] = useState<DashboardCard[]>([]);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<CardConfig | undefined>(undefined);
+
+  const { data: dataSources } = useRequest<DataSourceMeta[]>(
+    () => getDataSources() as Promise<DataSourceMeta[]>,
+    []
+  );
 
   useEffect(() => {
     const loaded = loadDashboard();
@@ -149,6 +150,26 @@ export default function DashboardEditor() {
     setTempCards(tempCards.filter((c) => c.config.id !== id));
   };
 
+  const handleEditCard = (config: CardConfig) => {
+    setEditingCard(config);
+    setBuilderOpen(true);
+  };
+
+  const handleEditConfirm = (updated: CardConfig) => {
+    setTempCards((prev) =>
+      prev.map((c) =>
+        c.config.id === updated.id ? { ...c, config: updated } : c
+      )
+    );
+    setBuilderOpen(false);
+    setEditingCard(undefined);
+  };
+
+  const handleBuilderCancel = () => {
+    setBuilderOpen(false);
+    setEditingCard(undefined);
+  };
+
   const handleLayoutChange = useCallback((layout: any) => {
     const arr = Array.isArray(layout) ? layout : [];
     setTempCards((prev) =>
@@ -199,7 +220,8 @@ export default function DashboardEditor() {
           <div className="flex gap-1">
             <button
               className="text-xs text-muted-foreground hover:text-foreground px-1"
-              onClick={() => {}}
+              onClick={() => handleEditCard(card.config)}
+              title="编辑图表"
             >
               ✎
             </button>
@@ -261,6 +283,13 @@ export default function DashboardEditor() {
           ))}
         </GridLayout>
       </div>
+      <ChartBuilder
+        open={builderOpen}
+        editingConfig={editingCard}
+        dataSources={dataSources ?? []}
+        onConfirm={handleEditConfirm}
+        onCancel={handleBuilderCancel}
+      />
     </div>
   );
 }
