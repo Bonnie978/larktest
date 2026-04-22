@@ -15,7 +15,6 @@ function BarChart({ data }: { data: AggregatedData[] }) {
 
   const series = data[0];
   const maxVal = Math.max(...series.data.map(d => d.value), 1);
-  const barCount = series.data.length;
   const barGap = 8;
   const labelHeight = 24;
   const chartHeight = 160;

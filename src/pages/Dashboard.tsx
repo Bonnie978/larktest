@@ -2,9 +2,11 @@ import { useState, useCallback } from 'react';
 import GridLayout from 'react-grid-layout';
 import { Button } from '@/components/ui/button';
 import ChartCard from '@/components/dashboard/ChartCard';
-import AddChartDialog from '@/components/dashboard/AddChartDialog';
+import ChartBuilder from '@/components/dashboard/ChartBuilder';
 import { loadCharts, saveCharts } from '@/utils/storage';
-import type { ChartConfig } from '@/types/dashboard';
+import type { ChartConfig, CardConfig, DataSourceType, DataSourceMeta } from '@/types/dashboard';
+import { useRequest } from '@/hooks/useRequest';
+import { getDataSources } from '@/api';
 
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -42,13 +44,43 @@ const getDefaultCharts = (): ChartConfig[] => [
   },
 ];
 
+/** Convert ChartConfig (Dashboard type) → CardConfig (ChartBuilder type) */
+function chartConfigToCardConfig(chart: ChartConfig): CardConfig {
+  return {
+    id: chart.id,
+    title: chart.title,
+    dataSourceId: chart.dataSource,
+    chartType: chart.chartType,
+    groupByField: chart.dimension,
+    valueFields: chart.metrics,
+    aggregation: chart.aggregation,
+  };
+}
+
+/** Convert CardConfig (ChartBuilder output) → ChartConfig (Dashboard type) */
+function cardConfigToChartConfig(card: CardConfig, existingLayout?: ChartConfig['layout']): ChartConfig {
+  return {
+    id: card.id,
+    title: card.title,
+    dataSource: card.dataSourceId as DataSourceType,
+    dimension: card.groupByField,
+    metrics: card.valueFields,
+    aggregation: card.aggregation,
+    chartType: card.chartType,
+    layout: existingLayout ?? { x: 0, y: Infinity, w: 4, h: 3 },
+  };
+}
+
 export default function Dashboard() {
   const [charts, setCharts] = useState<ChartConfig[]>(() => {
     const loaded = loadCharts();
     return loaded.length > 0 ? loaded : getDefaultCharts();
   });
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingChart, setEditingChart] = useState<ChartConfig | undefined>(undefined);
+
+  const { data: dataSources } = useRequest<DataSourceMeta[]>(getDataSources);
 
   const isEdit = mode === 'edit';
 
@@ -79,12 +111,40 @@ export default function Dashboard() {
     [isEdit],
   );
 
-  const handleAddChart = useCallback((config: ChartConfig) => {
+  const handleOpenAddChart = useCallback(() => {
+    setEditingChart(undefined);
+    setBuilderOpen(true);
+  }, []);
+
+  const handleOpenEditChart = useCallback((chart: ChartConfig) => {
+    setEditingChart(chart);
+    setBuilderOpen(true);
+  }, []);
+
+  const handleBuilderConfirm = useCallback((cardConfig: CardConfig) => {
     setCharts(prev => {
-      const updated = [...prev, config];
+      const existingIndex = prev.findIndex(c => c.id === cardConfig.id);
+      let updated: ChartConfig[];
+      if (existingIndex >= 0) {
+        // Editing existing chart: preserve layout
+        const existingLayout = prev[existingIndex].layout;
+        updated = prev.map((c, idx) =>
+          idx === existingIndex ? cardConfigToChartConfig(cardConfig, existingLayout) : c
+        );
+      } else {
+        // Adding new chart
+        updated = [...prev, cardConfigToChartConfig(cardConfig)];
+      }
       saveCharts(updated);
       return updated;
     });
+    setBuilderOpen(false);
+    setEditingChart(undefined);
+  }, []);
+
+  const handleBuilderCancel = useCallback(() => {
+    setBuilderOpen(false);
+    setEditingChart(undefined);
   }, []);
 
   const handleRemoveChart = useCallback((id: string) => {
@@ -102,7 +162,7 @@ export default function Dashboard() {
         <h1 className="text-lg font-semibold">可视化仪表盘</h1>
         <div className="flex items-center gap-2">
           {isEdit && (
-            <Button size="sm" variant="outline" onClick={() => setShowAddDialog(true)}>
+            <Button size="sm" variant="outline" onClick={handleOpenAddChart}>
               <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
@@ -168,6 +228,7 @@ export default function Dashboard() {
                 <ChartCard
                   config={chart}
                   editable={isEdit}
+                  onEdit={() => handleOpenEditChart(chart)}
                   onRemove={() => handleRemoveChart(chart.id)}
                 />
               </div>
@@ -176,11 +237,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Add Chart Dialog */}
-      <AddChartDialog
-        open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
-        onAdd={handleAddChart}
+      {/* Chart Builder Dialog */}
+      <ChartBuilder
+        open={builderOpen}
+        editingConfig={editingChart ? chartConfigToCardConfig(editingChart) : undefined}
+        dataSources={dataSources ?? []}
+        onConfirm={handleBuilderConfirm}
+        onCancel={handleBuilderCancel}
       />
     </div>
   );
